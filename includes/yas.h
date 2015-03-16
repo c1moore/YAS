@@ -25,7 +25,8 @@
 	struct cmd {
 		char C_NAME[CMD_LENGTH];				//Command to execute
 		int C_NARGS;							//Number of arguments specified
-		char C_ARGS[INIT_ARGS][ARG_LENGTH];		//Specified arguments
+		char C_ARGS[ARG_LENGTH];				//Specified arguments
+		char *C_ARGS_PNTR[INIT_ARGS];			//Pointer to each argument in C_ARGS.
 		union C_IO_TYPE C_INPUT;				//Input for the command
 		union C_IO_TYPE C_OUTPUT;				//Output for the command
 	};
