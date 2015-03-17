@@ -6,14 +6,18 @@ void yyerror(char *);
 %}
 
 %%
+^[ \n\t]*[a-zA-z]++[\n\t]*         return CMD
+[|][ \n\t]*[a-zA-z]++[ \n\t]*       |
 
 
+[ \n\t]*[a-zA-z\]++[\n]|[         return ARG
 
-">="            return GE;
-"<="            return LE;
-"=="            return EQ;
-"!="            return NE;
-"while"         return WHILE;
-"if"            return IF;
-"else"          return ELSE;
-"print"         return PRINT;
+">>"                                return OUT_RG
+
+">&"                                return OUT_ERR.OUT_RG
+
+">>&"                               return OUT_ERR_RA
+
+
+>[a-zA-Z0-9<>"\&]* | yyerror
+\[<>|'&*']         return
