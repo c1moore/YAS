@@ -21,10 +21,11 @@
 
 	/**
 	* Define the initial size of the C_ARGS.  This size is equal to the initial number of
-	* arguments, INIT_ARGS, times a constant.  This constant is our prediction the length of
-	* a typical argument.
+	* arguments, INIT_ARGS, times a constant, AVG_ARG.  This constant is our prediction
+	* of the length of the average argument.
 	*/
-	#define ARG_LENGTH		INIT_ARGS * 5
+	#define AVG_ARG			5
+	#define ARG_LENGTH		INIT_ARGS * AVG_ARG
 
 	/**
 	* Define the maximum length of a command, CMD_LENGTH, and the maximum number of
