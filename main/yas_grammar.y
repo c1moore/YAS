@@ -2,13 +2,24 @@
 	#include <sys/types.h>
 	#include <pwd.h>
 	#include <stdlib.h>
-	#include "yas.h"
+	#include <string.h>
+	#include <stdio.h>
+	#include "../includes/yas.h"
 
-	struct cmd new_cmd;
-	static const struct cmd empty_cmd
+	#define YYSTYPE char *
+
+	static const struct cmd empty_cmd = {C_NAME_INIT, 0, 0, 0, C_IO_IN_INIT, C_IO_OUT_INIT, C_IO_ERR_INIT};
+	struct cmd new_cmd = {C_NAME_INIT, 0, 0, 0, C_IO_IN_INIT, C_IO_OUT_INIT, C_IO_ERR_INIT};
 
 	int num_resizes = 0;
-	char io_in_set = 0, io_out_set = 0, io_err_set = 0;
+	char *argument;
+
+	void reallocArgs();
+	void replaceTilde(char *, char *);
+	void replaceUserTilde(char *, char *);
+	void addArg(char *, char *);
+
+	void yyerror(char *);
 %}
 
 %token CMD, ARG, EXPANDED_FILE, EXPANDED_USER, OUT_RA, OUT_ERR_R, OUT_ERR_RA, ERR_2_FILE, ERR_2_OUT
@@ -29,86 +40,50 @@ commands :
 
 command :
 			  CMD							{
-			  									int length = 0;
-			  									while(yylval[length])	length++;
-
-			  									if(length > CMD_LENGTH) {
+			  									if(strlen($1) > CMD_LENGTH) {
 			  										yyerror("Command has too many characters.");
 			  									}
 
-					  							strcpy(new_cmd.C_NAME, yylval);
+					  							strcpy(new_cmd.C_NAME, $1);
 					  							new_cmd.C_NARGS = 0,
 					  							new_cmd.C_ARGS[0] = '\0',
 					  							new_cmd.C_ARGS_PNTR[0] = &(new_cmd.C_ARGS[0]);
-					  							new_cmd.C_INPUT = YAS_STDIN;
-					  							new_cmd.C_OUPUT = YAS_STDOUT;
-					  							new_cmd.C_ERR = YAS_STDERR;
 
 					  							cmdtab[num_cmds++] = new_cmd;
 
 					  							new_cmd = empty_cmd;
 				  							}
 			| CMD arguments					{
-			  									int length = 0;
-			  									while(yylval[length])	length++;
-
-			  									if(length > CMD_LENGTH) {
+			  									if(strlen($1) > CMD_LENGTH) {
 			  										yyerror("Command has too many characters.");
 			  									}
 
-					  							strcpy(new_cmd.C_NAME, yylval);
-					  							new_cmd.C_INPUT = YAS_STDIN;
-					  							new_cmd.C_OUPUT = YAS_STDOUT;
-					  							new_cmd.C_ERR = YAS_STDERR;
+					  							strcpy(new_cmd.C_NAME, $1);
 
 					  							cmdtab[num_cmds++] = new_cmd;
 
 					  							new_cmd = empty_cmd;
 											}
 			| CMD arguments io_redirects	{
-			  									int length = 0;
-			  									while(yylval[length])	length++;
-
-			  									if(length > CMD_LENGTH) {
+			  									if(strlen($1) > CMD_LENGTH) {
 			  										yyerror("Command has too many characters.");
 			  									}
 
-					  							strcpy(new_cmd.C_NAME, yylval);
-
-					  							if(!io_in_set)
-					  								new_cmd.C_INPUT = YAS_STDIN;
-
-					  							if(!io_out_set)
-					  								new_cmd.C_OUPUT = YAS_STDOUT;
-
-					  							if(!io_err_set)
-					  								new_cmd.C_ERR = YAS_STDERR;
+					  							strcpy(new_cmd.C_NAME, $1);
 
 					  							cmdtab[num_cmds++] = new_cmd;
 
 					  							new_cmd = empty_cmd;
 											}
 			| CMD io_redirects				{
-			  									int length = 0;
-			  									while(yylval[length])	length++;
-
-			  									if(length > CMD_LENGTH) {
+			  									if(strlen($1) > CMD_LENGTH) {
 			  										yyerror("Command has too many characters.");
 			  									}
 
-					  							strcpy(new_cmd.C_NAME, yylval);
+					  							strcpy(new_cmd.C_NAME, $1);
 					  							new_cmd.C_NARGS = 0,
 					  							new_cmd.C_ARGS[0] = '\0',
 					  							new_cmd.C_ARGS_PNTR[0] = &(new_cmd.C_ARGS[0]);
-
-					  							if(!io_in_set)
-					  								new_cmd.C_INPUT = YAS_STDIN;
-
-					  							if(!io_out_set)
-					  								new_cmd.C_OUPUT = YAS_STDOUT;
-
-					  							if(!io_err_set)
-					  								new_cmd.C_ERR = YAS_STDERR;
 
 					  							cmdtab[num_cmds++] = new_cmd;
 
@@ -123,29 +98,34 @@ io_redirects :
 io_redirect :
 			  '|'							{
 			  									/* The last command entered in cmdtab will obtain the output of this command as its input. */
-			  									cmdtab[num_cmds - 1].C_INPUT = num_cmds;
-			  									new_cmd.C_OUTPUT = num_cmds - 1;
+			  									cmdtab[num_cmds - 1].C_INPUT.io.pointer = num_cmds;
+			  									cmdtab[num_cmds - 1].C_INPUT.field = C_IO_POINTER;
+
+			  									new_cmd.C_OUTPUT.io.pointer = num_cmds - 1;
+			  									new_cmd.C_OUTPUT.field = C_IO_POINTER;
 			  								}
 			| '<' io_argument				{
-												io_in_set = 1;
-
-												strcpy(new_cmd.C_INPUT, $2);
+												new_cmd.C_INPUT.io.file = malloc(strlen($2));
+												
+												strcpy(new_cmd.C_INPUT.io.file, $2);
+												new_cmd.C_INPUT.field = C_IO_FILE;
 											}
 			| '>' io_argument				{
-												io_out_set = 1;
+												new_cmd.C_OUTPUT.io.file = malloc(strlen($2));
 
-												strcpy(new_cmd.C_OUTPUT, $2);
+												strcpy(new_cmd.C_OUTPUT.io.file, $2);
+												new_cmd.C_OUTPUT.field = C_IO_FILE;
 											}
 			| OUT_RA io_argument
 			| ERR_2_FILE io_argument		{
-												io_err_set = 1;
+												new_cmd.C_ERR.io.file = malloc(strlen($2));
 
-												strcpy(new_cmd.C_ERR, $2);
+												strcpy(new_cmd.C_ERR.io.file, $2);
+												new_cmd.C_ERR.field = C_IO_FILE;
 											}
 			| ERR_2_OUT						{
-												io_err_set = 1;
-
-												new_cmd.C_ERR = YAS_STDOUT;
+												new_cmd.C_ERR.io.pointer = YAS_STDOUT;
+												new_cmd.C_ERR.field = C_IO_POINTER;
 											}
 			;
 
@@ -161,15 +141,7 @@ argument :
 
 			  									new_cmd.C_ARGS_PNTR[++new_cmd.C_NARGS] = &last_arg[++i];
 
-			  									int j = 0;
-			  									while(yylval[j]) {
-			  										//If the arguments array is not long enough, we need to reallocate space to it
-				  									if((last_arg - new_cmd.C_ARGS) >= (ARG_LENGTH * RESIZE_RATIO * num_resizes)) {
-				  										reallocArgs();
-				  									}
-
-				  									last_arg[i++] = yylval[j++];
-				  								}
+			  									addArg(new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS], $1);
 			  								}
 			| EXPANDED_FILE					{
 			  									int i = 0;
@@ -178,87 +150,58 @@ argument :
 
 			  									new_cmd.C_ARGS_PNTR[++new_cmd.C_NARGS] = &last_arg[++i];
 
-			  									char *argument;
-			  									replaceTilde(argument, yylval);
+			  									replaceTilde(argument, $1);
 
-			  									int j = 0;
-			  									while(argument[j]) {
-			  										//If the arguments array is not long enough, we need to reallocate space to it
-				  									if((last_arg - new_cmd.C_ARGS) >= (ARG_LENGTH * RESIZE_RATIO * num_resizes)) {
-				  										reallocArgs();
-				  									}
-
-				  									last_arg[i++] = argument[j++];
-				  								}
+			  									addArg(new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS], argument);
 											}
-			| EXPANDED_USER_FILE			{
+			| EXPANDED_USER					{
 			  									int i = 0;
 			  									char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS];	//Pointer to the beginning of the last argument.
 			  									while(last_arg[i])	i++;								//Find where the last argument ends.
 
 			  									new_cmd.C_ARGS_PNTR[++new_cmd.C_NARGS] = &last_arg[++i];
 
-			  									char *argument;
-			  									replaceUserTilde(argument, yylval);
+			  									replaceUserTilde(argument, $1);
 
-			  									int j = 0;
-			  									while(argument[j]) {
-			  										//If the arguments array is not long enough, we need to reallocate space to it
-				  									if((last_arg - new_cmd.C_ARGS) >= (ARG_LENGTH * RESIZE_RATIO * num_resizes)) {
-				  										reallocArgs();
-				  									}
-
-				  									last_arg[i++] = argument[j++];
-				  								}
+			  									addArg(new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS], argument);
 											}
 			;
 
 io_argument :								/* IO arguments are handled slightly differently than regular arguments (they are placed in a separate field in the table). */
 			  ARG							{
-			  									int length = 0;
-			  									while(yylval[length])	length++;								//Find where the last argument ends.
-
-			  									if(length > PATH_MAX) {
-			  										yyerror("Specified path too long.  Do not use more than " + PATH_MAX + " characters.");
+			  									if(strlen($1) > PATH_MAX) {
+			  										yyerror("Specified path too long.");
 			  									}
 
 			  									$$ = $1;
 			  								}
 			| EXPANDED_FILE					{
-			  									char *argument;
-			  									replaceTilde(argument, yylval);
+			  									replaceTilde(argument, $1);
 
-			  									int length = 0;
-			  									while(argument[length)	length++;
-
-			  									if(length > PATH_MAX) {
-			  										yyerror("Specified path too long.  Do not use more than " + PATH_MAX + " characters (including the expanded tilde).")
+			  									if(strlen(argument) > PATH_MAX) {
+			  										yyerror("Specified path too long (including the tilde expansion).");
 				  								}
 
-				  								$$ = $1;
+				  								$$ = argument;
 											}
-			| EXPANDED_USER_FILE			{
-			  									char *argument;
-			  									replaceTilde(argument, yylval);
+			| EXPANDED_USER					{
+			  									replaceTilde(argument, $1);
 
-			  									int length = 0;
-			  									while(argument[length)	length++;
-
-			  									if(length > PATH_MAX) {
-			  										yyerror("Specified path too long.  Do not use more than " + PATH_MAX + " characters (including the expanded tilde).")
+			  									if(strlen(argument) > PATH_MAX) {
+			  										yyerror("Specified path too long (including the tilde expansion).");
 				  								}
 
-				  								$$ = $1;
+				  								$$ = argument;
 											}
 			;
 
 %%
 
 void reallocArgs() {
-	char *old_ptr = args;		//Keep track of where new_cmd.C_ARGS was originally.
-	num_resizes++;				//Increment number of times the array was resized.
+	char *old_ptr = new_cmd.C_ARGS;		//Keep track of where new_cmd.C_ARGS was originally.
+	num_resizes++;						//Increment number of times the array was resized.
 
-	new_cmd.CARGS = (char *) realloc(new_cmd.C_ARGS, ARG_LENGTH * RESIZE_RATIO * num_resizes);
+	new_cmd.C_ARGS = (char *) realloc(new_cmd.C_ARGS, ARG_LENGTH * RESIZE_RATIO * num_resizes);
 
 	//If the location new_cmd.C_ARGS was pointing moved, all the pointers in C_ARGS_PNTR need to be updated.
 	if(old_ptr != new_cmd.C_ARGS) {
@@ -274,7 +217,7 @@ void reallocArgs() {
 }
 
 void replaceTilde(char *dest, char *filePath) {
-	char *home = getEnv("HOME");
+	char *home = getenv("HOME");
 
 	int homeLength = sizeof(home)/sizeof(home[0]);
 
@@ -287,8 +230,8 @@ void replaceTilde(char *dest, char *filePath) {
 	}
 	
 	dest = (char *) malloc(totalLength);
-	strcpy(newPath, home);
-	strcpy(&newPath[homeLength-1], &filePath[1]);
+	strcpy(dest, home);
+	strcpy(&dest[homeLength-1], &filePath[1]);
 }
 
 void replaceUserTilde(char *dest, char *word) {
@@ -299,6 +242,8 @@ void replaceUserTilde(char *dest, char *word) {
 	char uname[unameLength + 1];
 	strncpy(uname, word, unameLength);
 	uname[unameLength] = 0;
+
+	char *filePath = &word[unameLength];
 
 	struct passwd *user = getpwnam(uname);
 	if(user == NULL) {
@@ -318,6 +263,31 @@ void replaceUserTilde(char *dest, char *word) {
 	}
 	
 	dest = (char *) malloc(totalLength);
-	strcpy(newPath, home);
-	strcpy(&newPath[homeLength-1], &filePath[1]);
+	strcpy(dest, home);
+	strcpy(&dest[homeLength-1], &filePath[1]);
+}
+
+void addArg(char *dest, char *src) {
+	int i = 0;
+	while(src[i]) {
+		//If the arguments array is not long enough, we need to reallocate space to it
+		int distance = dest - new_cmd.C_ARGS;
+		char *old = new_cmd.C_ARGS;
+
+		if(distance >= (ARG_LENGTH * RESIZE_RATIO * num_resizes)) {
+			reallocArgs();
+
+			if(old != new_cmd.C_ARGS) {
+				dest = new_cmd.C_ARGS + distance;
+			}
+		}
+
+		dest[i] = src[i];
+
+		i++;
+	}
+}
+
+void yyerror(char *err) {
+	fprintf(stderr, "%s\n", err);
 }

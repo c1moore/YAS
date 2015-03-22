@@ -14,17 +14,25 @@
 	* standard output, and standard error should be used.
 	*/
 	#define YAS_STDIN		-1
-	#define YAS_STOUT		-2
+	#define YAS_STDOUT		-2
 	#define YAS_STDERR		-3
+
+	#define C_IO_FILE		1
+	#define C_IO_POINTER	2
 
 	/**
 	* Define the type to be used for C_INPUT and C_OUTPUT.  Since I/O for a command can
 	* be either a filename (char *), a pointer to another command (int), or STDIN or
 	* STDOUT (int); we will use a union of these types.
 	*/
-	union C_IO_TYPE {
-		char file[PATH_MAX];
+	union C_IO_UNION {
 		int pointer;
+		char *file;
+	};
+
+	struct C_IO_TYPE {
+		union C_IO_UNION io;
+		char field;
 	};
 
 	/**
@@ -33,11 +41,11 @@
 	struct cmd {
 		char C_NAME[CMD_LENGTH];				//Command to execute
 		int C_NARGS;							//Number of arguments specified
-		char C_ARGS[ARG_LENGTH];				//Specified arguments
-		char *C_ARGS_PNTR[INIT_ARGS];			//Pointer to each argument in C_ARGS.
-		union C_IO_TYPE C_INPUT;				//Input for the command
-		union C_IO_TYPE C_OUTPUT;				//Output for the command
-		union C_IO_TYPE C_ERR;					//Error for the command
+		char *C_ARGS;							//Specified arguments
+		char **C_ARGS_PNTR;						//Pointer to each argument in C_ARGS.
+		struct C_IO_TYPE C_INPUT;				//Input for the command
+		struct C_IO_TYPE C_OUTPUT;				//Output for the command
+		struct C_IO_TYPE C_ERR;					//Error for the command
 	};
 
 	struct cmd cmdtab[CMDS_MAX];				//Table of commands
@@ -54,4 +62,9 @@
 	* before continuing.
 	*/
 	char bg_mode;
+
+	#define C_NAME_INIT		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	#define C_IO_IN_INIT	{YAS_STDIN, 0}
+	#define C_IO_OUT_INIT	{YAS_STDOUT, 0}
+	#define C_IO_ERR_INIT	{YAS_STDERR, 0}
 #endif
