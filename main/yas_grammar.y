@@ -8,6 +8,7 @@
 	static const struct cmd empty_cmd
 
 	int num_resizes = 0;
+	char io_in_set = 0, io_out_set = 0, io_err_set = 0;
 %}
 
 %token CMD, ARG, EXPANDED_FILE, EXPANDED_USER, OUT_RA, OUT_ERR_R, OUT_ERR_RA, ERR_2_FILE, ERR_2_OUT
@@ -20,13 +21,22 @@ statement :
 
 commands :
 			  commands command
-			| commands '&'			{bg_mode = BG_MODE_TRUE;}
+			| commands '&'					{
+												bg_mode = BG_MODE_TRUE;
+											}
 			| /* NULL */
 			;
 
 command :
 			  CMD							{
-					  							strncpy(new_cmd.C_NAME, yylval, CMD_LENGTH);
+			  									int length = 0;
+			  									while(yylval[length])	length++;
+
+			  									if(length > CMD_LENGTH) {
+			  										yyerror("Command has too many characters.");
+			  									}
+
+					  							strcpy(new_cmd.C_NAME, yylval);
 					  							new_cmd.C_NARGS = 0,
 					  							new_cmd.C_ARGS[0] = '\0',
 					  							new_cmd.C_ARGS_PNTR[0] = &(new_cmd.C_ARGS[0]);
@@ -39,10 +49,71 @@ command :
 					  							new_cmd = empty_cmd;
 				  							}
 			| CMD arguments					{
+			  									int length = 0;
+			  									while(yylval[length])	length++;
 
+			  									if(length > CMD_LENGTH) {
+			  										yyerror("Command has too many characters.");
+			  									}
+
+					  							strcpy(new_cmd.C_NAME, yylval);
+					  							new_cmd.C_INPUT = YAS_STDIN;
+					  							new_cmd.C_OUPUT = YAS_STDOUT;
+					  							new_cmd.C_ERR = YAS_STDERR;
+
+					  							cmdtab[num_cmds++] = new_cmd;
+
+					  							new_cmd = empty_cmd;
 											}
-			| CMD arguments io_redirects
-			| CMD io_redirects
+			| CMD arguments io_redirects	{
+			  									int length = 0;
+			  									while(yylval[length])	length++;
+
+			  									if(length > CMD_LENGTH) {
+			  										yyerror("Command has too many characters.");
+			  									}
+
+					  							strcpy(new_cmd.C_NAME, yylval);
+
+					  							if(!io_in_set)
+					  								new_cmd.C_INPUT = YAS_STDIN;
+
+					  							if(!io_out_set)
+					  								new_cmd.C_OUPUT = YAS_STDOUT;
+
+					  							if(!io_err_set)
+					  								new_cmd.C_ERR = YAS_STDERR;
+
+					  							cmdtab[num_cmds++] = new_cmd;
+
+					  							new_cmd = empty_cmd;
+											}
+			| CMD io_redirects				{
+			  									int length = 0;
+			  									while(yylval[length])	length++;
+
+			  									if(length > CMD_LENGTH) {
+			  										yyerror("Command has too many characters.");
+			  									}
+
+					  							strcpy(new_cmd.C_NAME, yylval);
+					  							new_cmd.C_NARGS = 0,
+					  							new_cmd.C_ARGS[0] = '\0',
+					  							new_cmd.C_ARGS_PNTR[0] = &(new_cmd.C_ARGS[0]);
+
+					  							if(!io_in_set)
+					  								new_cmd.C_INPUT = YAS_STDIN;
+
+					  							if(!io_out_set)
+					  								new_cmd.C_OUPUT = YAS_STDOUT;
+
+					  							if(!io_err_set)
+					  								new_cmd.C_ERR = YAS_STDERR;
+
+					  							cmdtab[num_cmds++] = new_cmd;
+
+					  							new_cmd = empty_cmd;
+				  							}
 			;
 
 io_redirects :
@@ -50,12 +121,32 @@ io_redirects :
 			;
 
 io_redirect :
-			  '|'
-			| '<' io_argument
-			| '>' io_argument
+			  '|'							{
+			  									/* The last command entered in cmdtab will obtain the output of this command as its input. */
+			  									cmdtab[num_cmds - 1].C_INPUT = num_cmds;
+			  									new_cmd.C_OUTPUT = num_cmds - 1;
+			  								}
+			| '<' io_argument				{
+												io_in_set = 1;
+
+												strcpy(new_cmd.C_INPUT, $2);
+											}
+			| '>' io_argument				{
+												io_out_set = 1;
+
+												strcpy(new_cmd.C_OUTPUT, $2);
+											}
 			| OUT_RA io_argument
-			| ERR_2_FILE io_argument
-			| ERR_2_OUT
+			| ERR_2_FILE io_argument		{
+												io_err_set = 1;
+
+												strcpy(new_cmd.C_ERR, $2);
+											}
+			| ERR_2_OUT						{
+												io_err_set = 1;
+
+												new_cmd.C_ERR = YAS_STDOUT;
+											}
 			;
 
 arguments :
@@ -122,63 +213,42 @@ argument :
 											}
 			;
 
-io_argument :
+io_argument :								/* IO arguments are handled slightly differently than regular arguments (they are placed in a separate field in the table). */
 			  ARG							{
-			  									int i = 0;
-			  									char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS];	//Pointer to the beginning of the last argument.
-			  									while(last_arg[i])	i++;								//Find where the last argument ends.
+			  									int length = 0;
+			  									while(yylval[length])	length++;								//Find where the last argument ends.
 
-			  									new_cmd.C_ARGS_PNTR[++new_cmd.C_NARGS] = &last_arg[++i];
+			  									if(length > PATH_MAX) {
+			  										yyerror("Specified path too long.  Do not use more than " + PATH_MAX + " characters.");
+			  									}
 
-			  									int j = 0;
-			  									while(yylval[j]) {
-			  										//If the arguments array is not long enough, we need to reallocate space to it
-				  									if((last_arg - new_cmd.C_ARGS) >= (ARG_LENGTH * RESIZE_RATIO * num_resizes)) {
-				  										reallocArgs();
-				  									}
-
-				  									last_arg[i++] = yylval[j++];
-				  								}
+			  									$$ = $1;
 			  								}
 			| EXPANDED_FILE					{
-			  									int i = 0;
-			  									char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS];	//Pointer to the beginning of the last argument.
-			  									while(last_arg[i])	i++;								//Find where the last argument ends.
-
-			  									new_cmd.C_ARGS_PNTR[++new_cmd.C_NARGS] = &last_arg[++i];
-
 			  									char *argument;
 			  									replaceTilde(argument, yylval);
 
-			  									int j = 0;
-			  									while(argument[j]) {
-			  										//If the arguments array is not long enough, we need to reallocate space to it
-				  									if((last_arg - new_cmd.C_ARGS) >= (ARG_LENGTH * RESIZE_RATIO * num_resizes)) {
-				  										reallocArgs();
-				  									}
+			  									int length = 0;
+			  									while(argument[length)	length++;
 
-				  									last_arg[i++] = argument[j++];
+			  									if(length > PATH_MAX) {
+			  										yyerror("Specified path too long.  Do not use more than " + PATH_MAX + " characters (including the expanded tilde).")
 				  								}
+
+				  								$$ = $1;
 											}
 			| EXPANDED_USER_FILE			{
-			  									int i = 0;
-			  									char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS];	//Pointer to the beginning of the last argument.
-			  									while(last_arg[i])	i++;								//Find where the last argument ends.
-
-			  									new_cmd.C_ARGS_PNTR[++new_cmd.C_NARGS] = &last_arg[++i];
-
 			  									char *argument;
-			  									replaceUserTilde(argument, yylval);
+			  									replaceTilde(argument, yylval);
 
-			  									int j = 0;
-			  									while(argument[j]) {
-			  										//If the arguments array is not long enough, we need to reallocate space to it
-				  									if((last_arg - new_cmd.C_ARGS) >= (ARG_LENGTH * RESIZE_RATIO * num_resizes)) {
-				  										reallocArgs();
-				  									}
+			  									int length = 0;
+			  									while(argument[length)	length++;
 
-				  									last_arg[i++] = argument[j++];
+			  									if(length > PATH_MAX) {
+			  										yyerror("Specified path too long.  Do not use more than " + PATH_MAX + " characters (including the expanded tilde).")
 				  								}
+
+				  								$$ = $1;
 											}
 			;
 
