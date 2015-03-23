@@ -6,23 +6,32 @@
 	#include <stdio.h>
 	#include "../includes/yas.h"
 
-	#define YYSTYPE char *
-
 	static const struct cmd empty_cmd = {C_NAME_INIT, 0, 0, 0, C_IO_IN_INIT, C_IO_OUT_INIT, C_IO_ERR_INIT};
 	struct cmd new_cmd = {C_NAME_INIT, 0, 0, 0, C_IO_IN_INIT, C_IO_OUT_INIT, C_IO_ERR_INIT};
 
 	int num_resizes = 0;
 	char *argument;
 
+	void checkAndAlloc();
 	void reallocArgs();
 	void replaceTilde(char *, char *);
 	void replaceUserTilde(char *, char *);
 	void addArg(char *, char *);
 
 	void yyerror(char *);
+
+	int yydebug = 1;
 %}
 
-%token CMD, ARG, EXPANDED_FILE, EXPANDED_USER, OUT_RA, OUT_ERR_R, OUT_ERR_RA, ERR_2_FILE, ERR_2_OUT
+%union {
+	char *str;
+	char eoc;
+}
+
+%type <str> io_argument
+
+%token <str> CMD ARG EXPANDED_FILE EXPANDED_USER OUT_RA OUT_ERR_R OUT_ERR_RA ERR_2_FILE ERR_2_OUT
+%token <eoc> EOC
 
 %%
 
@@ -39,7 +48,11 @@ commands :
 			;
 
 command :
-			  CMD							{
+			  CMD EOC						{
+												fprintf(stderr, "%s\n", "Found a command.");
+												fflush(stderr);
+												checkAndAlloc();
+
 			  									if(strlen($1) > CMD_LENGTH) {
 			  										yyerror("Command has too many characters.");
 			  									}
@@ -54,6 +67,8 @@ command :
 					  							new_cmd = empty_cmd;
 				  							}
 			| CMD arguments					{
+												fprintf(stderr, "%s\n", "Found a command with an argument.");
+												fflush(stderr);
 			  									if(strlen($1) > CMD_LENGTH) {
 			  										yyerror("Command has too many characters.");
 			  									}
@@ -65,6 +80,8 @@ command :
 					  							new_cmd = empty_cmd;
 											}
 			| CMD arguments io_redirects	{
+												fprintf(stderr, "%s\n", "Found a command with arguments and I/O redirects.");
+												fflush(stderr);
 			  									if(strlen($1) > CMD_LENGTH) {
 			  										yyerror("Command has too many characters.");
 			  									}
@@ -76,6 +93,10 @@ command :
 					  							new_cmd = empty_cmd;
 											}
 			| CMD io_redirects				{
+												fprintf(stderr, "%s\n", "Found a command with I/O redirects.");
+												fflush(stderr);
+												checkAndAlloc();
+
 			  									if(strlen($1) > CMD_LENGTH) {
 			  										yyerror("Command has too many characters.");
 			  									}
@@ -97,6 +118,8 @@ io_redirects :
 
 io_redirect :
 			  '|'							{
+												fprintf(stderr, "%s\n", "Found a pipe (|).");
+												fflush(stderr);
 			  									/* The last command entered in cmdtab will obtain the output of this command as its input. */
 			  									cmdtab[num_cmds - 1].C_INPUT.io.pointer = num_cmds;
 			  									cmdtab[num_cmds - 1].C_INPUT.field = C_IO_POINTER;
@@ -135,6 +158,10 @@ arguments :
 
 argument :
 			  ARG							{
+												fprintf(stderr, "%s\n", "Found an ARG.");
+												fflush(stderr);
+			  									checkAndAlloc();
+
 			  									int i = 0;
 			  									char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS];	//Pointer to the beginning of the last argument.
 			  									while(last_arg[i])	i++;								//Find where the last argument ends.
@@ -144,6 +171,10 @@ argument :
 			  									addArg(new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS], $1);
 			  								}
 			| EXPANDED_FILE					{
+												fprintf(stderr, "%s\n", "Found an EXPANDED_FILE.");
+												fflush(stderr);
+												checkAndAlloc();
+
 			  									int i = 0;
 			  									char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS];	//Pointer to the beginning of the last argument.
 			  									while(last_arg[i])	i++;								//Find where the last argument ends.
@@ -155,6 +186,10 @@ argument :
 			  									addArg(new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS], argument);
 											}
 			| EXPANDED_USER					{
+												fprintf(stderr, "%s\n", "Found an EXPANDED_USER.");
+												fflush(stderr);
+												checkAndAlloc();
+
 			  									int i = 0;
 			  									char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS];	//Pointer to the beginning of the last argument.
 			  									while(last_arg[i])	i++;								//Find where the last argument ends.
@@ -169,6 +204,8 @@ argument :
 
 io_argument :								/* IO arguments are handled slightly differently than regular arguments (they are placed in a separate field in the table). */
 			  ARG							{
+												fprintf(stderr, "%s\n", "Found an IO ARG.");
+												fflush(stderr);
 			  									if(strlen($1) > PATH_MAX) {
 			  										yyerror("Specified path too long.");
 			  									}
@@ -176,6 +213,8 @@ io_argument :								/* IO arguments are handled slightly differently than regul
 			  									$$ = $1;
 			  								}
 			| EXPANDED_FILE					{
+												fprintf(stderr, "%s\n", "Found an IO EXPANDED_FILE.");
+												fflush(stderr);
 			  									replaceTilde(argument, $1);
 
 			  									if(strlen(argument) > PATH_MAX) {
@@ -185,6 +224,8 @@ io_argument :								/* IO arguments are handled slightly differently than regul
 				  								$$ = argument;
 											}
 			| EXPANDED_USER					{
+												fprintf(stderr, "%s\n", "Found an IO EXPANDED_USER.");
+												fflush(stderr);
 			  									replaceTilde(argument, $1);
 
 			  									if(strlen(argument) > PATH_MAX) {
@@ -197,7 +238,21 @@ io_argument :								/* IO arguments are handled slightly differently than regul
 
 %%
 
+void checkAndAlloc(void) {
+	fprintf(stderr, "%s\n", "Checking argument array and allocating space if necessary.");
+	fflush(stderr);
+	if(!new_cmd.C_ARGS) {
+		new_cmd.C_ARGS = malloc(ARG_LENGTH * sizeof(char *));
+	}
+	
+	if(!new_cmd.C_ARGS_PNTR) {
+		new_cmd.C_ARGS_PNTR = malloc(INIT_ARGS * sizeof(char **));
+	}
+}
+
 void reallocArgs() {
+	fprintf(stderr, "%s\n", "Reallocating space to arguments");
+	fflush(stderr);
 	char *old_ptr = new_cmd.C_ARGS;		//Keep track of where new_cmd.C_ARGS was originally.
 	num_resizes++;						//Increment number of times the array was resized.
 
@@ -217,6 +272,8 @@ void reallocArgs() {
 }
 
 void replaceTilde(char *dest, char *filePath) {
+	fprintf(stderr, "%s\n", "Replacing a tilde.");
+	fflush(stderr);
 	char *home = getenv("HOME");
 
 	int homeLength = sizeof(home)/sizeof(home[0]);
@@ -235,6 +292,8 @@ void replaceTilde(char *dest, char *filePath) {
 }
 
 void replaceUserTilde(char *dest, char *word) {
+	fprintf(stderr, "%s\n", "Replacing a user tilde.");
+	fflush(stderr);
 	int unameLength = 0;
 	while(word[unameLength] != '/' || word[unameLength] != 0)
 		unameLength++;
@@ -268,6 +327,10 @@ void replaceUserTilde(char *dest, char *word) {
 }
 
 void addArg(char *dest, char *src) {
+	fprintf(stderr, "%s\n", "Adding an argument.");
+	fflush(stderr);
+	checkAndAlloc();
+
 	int i = 0;
 	while(src[i]) {
 		//If the arguments array is not long enough, we need to reallocate space to it
@@ -290,4 +353,11 @@ void addArg(char *dest, char *src) {
 
 void yyerror(char *err) {
 	fprintf(stderr, "%s\n", err);
+}
+
+int main(void) {
+	fprintf(stderr, "%s\n", "Beginning...");
+	fflush(stderr);
+	yyparse();
+	return 0;
 }

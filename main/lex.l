@@ -1,31 +1,65 @@
 %{
-#include <stdlib.h>
-void yyerror(char *);
+	#include <stdlib.h>
+	#include <string.h>
+	#include "y.tab.h"
+
+	void yyerror(char *);
 %}
 
 %%
-^[ \t]*[a-zA-z]++                   |
-"|"[ \t]*?[a-zA-z]++                |
-^[ \t]*"./"[a-zA-z"/"]++            |
-"|"[ \t]*"./"[a-zA-z"/"]++          printf("CMD\n");
 
-[a-zA-z"/"]++                       printf("ARG\n");
+^[ \t]*("./")?[a-zA-z0-9./]+				{
+												fprintf(stderr, "%s\n", "Lex1");
+												yylval.str = strdup(yytext);
+												return CMD;
+											}
 
-">>"                                printf("OUT_RA\n");
+"|"[ \t]*("./")?[a-zA-z0-9./]+				{
+												fprintf(stderr, "%s\n", "Lex2");
+												printf("|");
+												return CMD;
+											}
 
-">&"                                printf("OUT_ERR_R\n");
+-*[a-zA-z0-9.:/]+							|
+\"((.)*(\")*)*\"							|
+-*([a-zA-Z0-9.:/]*\\[ a-zA-Z0-9<>|"\&])*	{
+												fprintf(stderr, "%s\n", "Lex3");
+												yylval.str = strdup(yytext);
+												return ARG;
+											}
 
-">>&"                               printf("OUT_ERR_RA\n");
+2>											return ERR_2_FILE;
 
-~"/"[a-zA-Z0-9."/"]*                printf("EXPANDED_FILE\n");
+2>&1										return ERR_2_OUT;
 
-~[a-zA-Z0-9]*[a-zA-Z0-9."/"]*       printf("EXPANDED_USER\n");;
+[<>&]										return *yytext;
 
-[ \t]+                              /* ignore white space */;
+">>"										return OUT_RA;
 
-.                                   yyerror("What is this nonsense?! I don't know this char!\n");
+">&"										return OUT_ERR_R;
+
+">>&"										return OUT_ERR_RA;
+
+~"/"[a-zA-Z0-9./]*							{
+												fprintf(stderr, "%s\n", "Lex4");
+												yylval.str = strdup(yytext);
+												return EXPANDED_FILE;
+											}
+
+~[a-zA-Z0-9]*"/"?[a-zA-Z0-9./]*				{
+												fprintf(stderr, "%s\n", "Lex5");
+												yylval.str = strdup(yytext);
+												return EXPANDED_USER;
+											}
+
+[ \t]+										/* ignore white space */;
+
+.											yyerror("What is this nonsense?! I don't know this char!");
+
+\n 											return EOC;
+
 %%
 
-void yyerror(char * error) {
-    printf("%s",error);
+int yywrap() {
+	return 0;
 }
