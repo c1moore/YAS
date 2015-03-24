@@ -1,10 +1,13 @@
 %{
 	#include <stdlib.h>
 	#include <string.h>
+	#include <stdio.h>
 	#include "y.tab.h"
 
 	void yyerror(char *);
 %}
+
+%x PS
 
 %%
 
@@ -14,10 +17,19 @@
 												return CMD;
 											}
 
-"|"[ \t]*("./")?[a-zA-z0-9./]+				{
+<PS>[ \t]*("./")?[a-zA-z0-9./]+					{
 												fprintf(stderr, "%s\n", "Lex2");
-												printf("|");
+												BEGIN 0;
 												return CMD;
+											}
+
+<*>"|"										{
+												printf("Found pipe.\n");
+												fprintf(stderr, "%s\n", "Pipe");
+												fflush(stderr);
+												BEGIN PS;
+												fprintf(stderr, "%s\n", "Piping begun.");
+												return EOC;
 											}
 
 -*[a-zA-z0-9.:/]+							|
@@ -52,14 +64,14 @@
 												return EXPANDED_USER;
 											}
 
-[ \t]+										/* ignore white space */;
+<*>[ \t]+									/* ignore white space */;
 
-.											yyerror("What is this nonsense?! I don't know this char!");
+<*>.										yyerror("What is this nonsense?! I don't know this char!");
 
 \n 											return EOC;
 
 %%
 
 int yywrap() {
-	return 0;
+	return 1;
 }

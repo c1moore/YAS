@@ -9,8 +9,10 @@
 	static const struct cmd empty_cmd = {C_NAME_INIT, 0, 0, 0, C_IO_IN_INIT, C_IO_OUT_INIT, C_IO_ERR_INIT};
 	struct cmd new_cmd = {C_NAME_INIT, 0, 0, 0, C_IO_IN_INIT, C_IO_OUT_INIT, C_IO_ERR_INIT};
 
-	int num_resizes = 0;
-	char *argument;
+	int num_resizes = 0, pntr_resizes = 0;								//Keep track of the number of times the C_ARGS and C_ARGS_PNTR has been resized.
+	char *argument;														//Used for tilde expansion of arguments.
+	char io_in_set = 0, io_out_set = 0, io_err_set = 0, io_pipe = 0;	//Determine if I/O has already been set.
+	char reached_eoc = 0;												//Determine if '\n' has been reached (should exit if reached_eoc == 1).
 
 	void checkAndAlloc();
 	void reallocArgs();
@@ -40,200 +42,259 @@ statement :
 			;
 
 commands :
-			  commands command
-			| commands '&'					{
-												bg_mode = BG_MODE_TRUE;
-											}
-			| /* NULL */
+			  commands command							{
+															fprintf(stderr, "%s\n", "Exiting");
+															fflush(stderr);
+															if(reached_eoc == 1) {
+																return 0;
+															}
+														}
+			| /* NULL */								{
+															fprintf(stderr, "%s\n", "Exiting");
+															fflush(stderr);
+															if(reached_eoc == 1) {
+																return 0;
+															}
+														}
 			;
 
 command :
-			  CMD EOC						{
-												fprintf(stderr, "%s\n", "Found a command.");
-												fflush(stderr);
-												checkAndAlloc();
+			  CMD end_of_command						{
+															fprintf(stderr, "%s%s\n", "Found a command. ", $1);
+															fflush(stderr);
+															checkAndAlloc();
 
-			  									if(strlen($1) > CMD_LENGTH) {
-			  										yyerror("Command has too many characters.");
-			  									}
+						  									if(strlen($1) > CMD_LENGTH) {
+						  										yyerror("Command has too many characters.");
+						  									}
 
-					  							strcpy(new_cmd.C_NAME, $1);
-					  							new_cmd.C_NARGS = 0,
-					  							new_cmd.C_ARGS[0] = '\0',
-					  							new_cmd.C_ARGS_PNTR[0] = &(new_cmd.C_ARGS[0]);
+								  							strcpy(new_cmd.C_NAME, $1);
+								  							new_cmd.C_NARGS = 0,
+								  							new_cmd.C_ARGS[0] = '\0',
+								  							new_cmd.C_ARGS_PNTR[0] = &(new_cmd.C_ARGS[0]);
 
-					  							cmdtab[num_cmds++] = new_cmd;
+								  							cmdtab[num_cmds++] = new_cmd;
 
-					  							new_cmd = empty_cmd;
-				  							}
-			| CMD arguments					{
-												fprintf(stderr, "%s\n", "Found a command with an argument.");
-												fflush(stderr);
-			  									if(strlen($1) > CMD_LENGTH) {
-			  										yyerror("Command has too many characters.");
-			  									}
+								  							new_cmd = empty_cmd;
 
-					  							strcpy(new_cmd.C_NAME, $1);
+								  							io_in_set = io_out_set = io_err_set = num_resizes = pntr_resizes = 0;
 
-					  							cmdtab[num_cmds++] = new_cmd;
+								  							//Set the input for the next command if there was a pipe.
+								  							if(io_pipe) {
+								  								new_cmd.C_INPUT.io.pointer = num_cmds + 1;
+																new_cmd.C_INPUT.field = C_IO_POINTER;
 
-					  							new_cmd = empty_cmd;
-											}
-			| CMD arguments io_redirects	{
-												fprintf(stderr, "%s\n", "Found a command with arguments and I/O redirects.");
-												fflush(stderr);
-			  									if(strlen($1) > CMD_LENGTH) {
-			  										yyerror("Command has too many characters.");
-			  									}
+																io_pipe = 0;
+																io_in_set = 1;
+								  							}
+							  							}
+			| CMD arguments io_redirects end_of_command	{
+															fprintf(stderr, "%s%s\n", "Found a command with arguments and I/O redirects. ", $1);
+															fflush(stderr);
+						  									if(strlen($1) > CMD_LENGTH) {
+						  										yyerror("Command has too many characters.");
+						  									}
 
-					  							strcpy(new_cmd.C_NAME, $1);
+								  							strcpy(new_cmd.C_NAME, $1);
 
-					  							cmdtab[num_cmds++] = new_cmd;
+								  							cmdtab[num_cmds++] = new_cmd;
 
-					  							new_cmd = empty_cmd;
-											}
-			| CMD io_redirects				{
-												fprintf(stderr, "%s\n", "Found a command with I/O redirects.");
-												fflush(stderr);
-												checkAndAlloc();
+								  							new_cmd = empty_cmd;
 
-			  									if(strlen($1) > CMD_LENGTH) {
-			  										yyerror("Command has too many characters.");
-			  									}
+								  							io_in_set = io_out_set = io_err_set = num_resizes = pntr_resizes = 0;
 
-					  							strcpy(new_cmd.C_NAME, $1);
-					  							new_cmd.C_NARGS = 0,
-					  							new_cmd.C_ARGS[0] = '\0',
-					  							new_cmd.C_ARGS_PNTR[0] = &(new_cmd.C_ARGS[0]);
+								  							//Set the input for the next command if there was a pipe.
+								  							if(io_pipe) {
+								  								new_cmd.C_INPUT.io.pointer = num_cmds + 1;
+																new_cmd.C_INPUT.field = C_IO_POINTER;
 
-					  							cmdtab[num_cmds++] = new_cmd;
+																io_pipe = 0;
+																io_in_set = 1;
+								  							}
+														}
+			;
 
-					  							new_cmd = empty_cmd;
-				  							}
+end_of_command :
+			  EOC 										{
+			  												reached_eoc = 1;
+														}
+			| '|'										{
+			  												if(io_out_set == 1) {
+			  													yyerror("I/O Error: Output can only be redirected once per command.");
+			  												}
+
+															fprintf(stderr, "%s\n", "Found a pipe (|).");
+															fflush(stderr);
+						  									
+															io_pipe = 1;
+
+															new_cmd.C_OUTPUT.io.pointer = num_cmds + 1;
+															new_cmd.C_OUTPUT.field = C_IO_POINTER;
+						  									/*/* The last command entered in cmdtab will obtain the output of this command as its input.
+						  									cmdtab[num_cmds - 1].C_INPUT.io.pointer = num_cmds;
+						  									cmdtab[num_cmds - 1].C_INPUT.field = C_IO_POINTER;
+
+						  									new_cmd.C_OUTPUT.io.pointer = num_cmds - 1;
+						  									new_cmd.C_OUTPUT.field = C_IO_POINTER;*/
+														}
+			| '&'										{
+															bg_mode = BG_MODE_TRUE;
+														}
 			;
 
 io_redirects :
 			  io_redirects io_redirect
+			| /* NULL */
 			;
 
 io_redirect :
-			  '|'							{
-												fprintf(stderr, "%s\n", "Found a pipe (|).");
-												fflush(stderr);
-			  									/* The last command entered in cmdtab will obtain the output of this command as its input. */
-			  									cmdtab[num_cmds - 1].C_INPUT.io.pointer = num_cmds;
-			  									cmdtab[num_cmds - 1].C_INPUT.field = C_IO_POINTER;
+			  '<' io_argument							{
+			  												if(io_in_set == 1) {
+			  													yyerror("I/O Error: Input can only be redirected once per command.");
+			  												}
 
-			  									new_cmd.C_OUTPUT.io.pointer = num_cmds - 1;
-			  									new_cmd.C_OUTPUT.field = C_IO_POINTER;
-			  								}
-			| '<' io_argument				{
-												new_cmd.C_INPUT.io.file = malloc(strlen($2));
-												
-												strcpy(new_cmd.C_INPUT.io.file, $2);
-												new_cmd.C_INPUT.field = C_IO_FILE;
-											}
-			| '>' io_argument				{
-												new_cmd.C_OUTPUT.io.file = malloc(strlen($2));
+															new_cmd.C_INPUT.io.file = malloc(strlen($2));
+															
+															strcpy(new_cmd.C_INPUT.io.file, $2);
+															new_cmd.C_INPUT.field = C_IO_FILE;
+														}
+			| '>' io_argument							{
+			  												if(io_in_set == 1) {
+			  													yyerror("I/O Error: Out can only be redirected once per command.");
+			  												}
 
-												strcpy(new_cmd.C_OUTPUT.io.file, $2);
-												new_cmd.C_OUTPUT.field = C_IO_FILE;
-											}
+															new_cmd.C_OUTPUT.io.file = malloc(strlen($2));
+
+															strcpy(new_cmd.C_OUTPUT.io.file, $2);
+															new_cmd.C_OUTPUT.field = C_IO_FILE;
+														}
 			| OUT_RA io_argument
-			| ERR_2_FILE io_argument		{
-												new_cmd.C_ERR.io.file = malloc(strlen($2));
+			| ERR_2_FILE io_argument					{
+			  												if(io_in_set == 1) {
+			  													yyerror("I/O Error: Error can only be redirected once per command.");
+			  												}
 
-												strcpy(new_cmd.C_ERR.io.file, $2);
-												new_cmd.C_ERR.field = C_IO_FILE;
-											}
-			| ERR_2_OUT						{
-												new_cmd.C_ERR.io.pointer = YAS_STDOUT;
-												new_cmd.C_ERR.field = C_IO_POINTER;
-											}
+															new_cmd.C_ERR.io.file = malloc(strlen($2));
+
+															strcpy(new_cmd.C_ERR.io.file, $2);
+															new_cmd.C_ERR.field = C_IO_FILE;
+														}
+			| ERR_2_OUT									{
+			  												if(io_in_set == 1) {
+			  													yyerror("I/O Error: Error can only be redirected once per command.");
+			  												}
+
+															new_cmd.C_ERR.io.pointer = YAS_STDOUT;
+															new_cmd.C_ERR.field = C_IO_POINTER;
+														}
 			;
 
 arguments :
 			  arguments argument
+			| /* NULL */								{
+															checkAndAlloc();
+														}
 			;
 
 argument :
-			  ARG							{
-												fprintf(stderr, "%s\n", "Found an ARG.");
-												fflush(stderr);
-			  									checkAndAlloc();
+			  ARG										{
+															fprintf(stderr, "%s\n", "Found an ARG.");
+															fflush(stderr);
+						  									checkAndAlloc();
 
-			  									int i = 0;
-			  									char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS];	//Pointer to the beginning of the last argument.
-			  									while(last_arg[i])	i++;								//Find where the last argument ends.
+															fprintf(stderr, "%s\n", "Looking for last arg.");
+															fflush(stderr);
 
-			  									new_cmd.C_ARGS_PNTR[++new_cmd.C_NARGS] = &last_arg[++i];
+						  									int i = 0;
+						  									char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS];	//Pointer to the beginning of the last argument.
+						  									while(last_arg[i])	i++;								//Find where the last argument ends.
 
-			  									addArg(new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS], $1);
-			  								}
-			| EXPANDED_FILE					{
-												fprintf(stderr, "%s\n", "Found an EXPANDED_FILE.");
-												fflush(stderr);
-												checkAndAlloc();
+															fprintf(stderr, "%s\n", "Adding pointer to arg.");
+															fflush(stderr);
 
-			  									int i = 0;
-			  									char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS];	//Pointer to the beginning of the last argument.
-			  									while(last_arg[i])	i++;								//Find where the last argument ends.
+															if(++new_cmd.C_NARGS >= INIT_ARGS) {
+																reallocArgsPntr();
+															}
 
-			  									new_cmd.C_ARGS_PNTR[++new_cmd.C_NARGS] = &last_arg[++i];
+						  									new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS] = &last_arg[++i];
 
-			  									replaceTilde(argument, $1);
+															fprintf(stderr, "%s\n", "Adding arg.");
+															fflush(stderr);
 
-			  									addArg(new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS], argument);
-											}
-			| EXPANDED_USER					{
-												fprintf(stderr, "%s\n", "Found an EXPANDED_USER.");
-												fflush(stderr);
-												checkAndAlloc();
+						  									addArg(new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS], $1);
+						  								}
+			| EXPANDED_FILE								{
+															fprintf(stderr, "%s\n", "Found an EXPANDED_FILE.");
+															fflush(stderr);
+															checkAndAlloc();
 
-			  									int i = 0;
-			  									char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS];	//Pointer to the beginning of the last argument.
-			  									while(last_arg[i])	i++;								//Find where the last argument ends.
+						  									int i = 0;
+						  									char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS];	//Pointer to the beginning of the last argument.
+						  									while(last_arg[i])	i++;								//Find where the last argument ends.
 
-			  									new_cmd.C_ARGS_PNTR[++new_cmd.C_NARGS] = &last_arg[++i];
+															if(++new_cmd.C_NARGS >= INIT_ARGS) {
+																reallocArgsPntr();
+															}
 
-			  									replaceUserTilde(argument, $1);
+						  									new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS] = &last_arg[++i];
 
-			  									addArg(new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS], argument);
-											}
+						  									replaceTilde(argument, $1);
+
+						  									addArg(new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS], argument);
+														}
+			| EXPANDED_USER								{
+															fprintf(stderr, "%s\n", "Found an EXPANDED_USER.");
+															fflush(stderr);
+															checkAndAlloc();
+
+						  									int i = 0;
+						  									char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS];	//Pointer to the beginning of the last argument.
+						  									while(last_arg[i])	i++;								//Find where the last argument ends.
+
+															if(++new_cmd.C_NARGS >= INIT_ARGS) {
+																reallocArgsPntr();
+															}
+
+						  									new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS] = &last_arg[++i];
+
+						  									replaceUserTilde(argument, $1);
+
+						  									addArg(new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS], argument);
+														}
 			;
 
-io_argument :								/* IO arguments are handled slightly differently than regular arguments (they are placed in a separate field in the table). */
-			  ARG							{
-												fprintf(stderr, "%s\n", "Found an IO ARG.");
-												fflush(stderr);
-			  									if(strlen($1) > PATH_MAX) {
-			  										yyerror("Specified path too long.");
-			  									}
+io_argument :											/* IO arguments are handled slightly differently than regular arguments (they are placed in a separate field in the table). */
+			  ARG										{
+															fprintf(stderr, "%s\n", "Found an IO ARG.");
+															fflush(stderr);
+						  									if(strlen($1) > PATH_MAX) {
+						  										yyerror("Specified path too long.");
+						  									}
 
-			  									$$ = $1;
-			  								}
-			| EXPANDED_FILE					{
-												fprintf(stderr, "%s\n", "Found an IO EXPANDED_FILE.");
-												fflush(stderr);
-			  									replaceTilde(argument, $1);
+						  									$$ = $1;
+						  								}
+			| EXPANDED_FILE								{
+															fprintf(stderr, "%s\n", "Found an IO EXPANDED_FILE.");
+															fflush(stderr);
+						  									replaceTilde(argument, $1);
 
-			  									if(strlen(argument) > PATH_MAX) {
-			  										yyerror("Specified path too long (including the tilde expansion).");
-				  								}
+						  									if(strlen(argument) > PATH_MAX) {
+						  										yyerror("Specified path too long (including the tilde expansion).");
+							  								}
 
-				  								$$ = argument;
-											}
-			| EXPANDED_USER					{
-												fprintf(stderr, "%s\n", "Found an IO EXPANDED_USER.");
-												fflush(stderr);
-			  									replaceTilde(argument, $1);
+							  								$$ = argument;
+														}
+			| EXPANDED_USER								{
+															fprintf(stderr, "%s\n", "Found an IO EXPANDED_USER.");
+															fflush(stderr);
+						  									replaceTilde(argument, $1);
 
-			  									if(strlen(argument) > PATH_MAX) {
-			  										yyerror("Specified path too long (including the tilde expansion).");
-				  								}
+						  									if(strlen(argument) > PATH_MAX) {
+						  										yyerror("Specified path too long (including the tilde expansion).");
+							  								}
 
-				  								$$ = argument;
-											}
+							  								$$ = argument;
+														}
 			;
 
 %%
@@ -242,11 +303,13 @@ void checkAndAlloc(void) {
 	fprintf(stderr, "%s\n", "Checking argument array and allocating space if necessary.");
 	fflush(stderr);
 	if(!new_cmd.C_ARGS) {
-		new_cmd.C_ARGS = malloc(ARG_LENGTH * sizeof(char *));
+		new_cmd.C_ARGS = calloc(ARG_LENGTH, sizeof(char *));
 	}
 	
 	if(!new_cmd.C_ARGS_PNTR) {
-		new_cmd.C_ARGS_PNTR = malloc(INIT_ARGS * sizeof(char **));
+		new_cmd.C_ARGS_PNTR = calloc(INIT_ARGS, sizeof(char **));
+
+		new_cmd.C_ARGS_PNTR[0] = &new_cmd.C_ARGS[0];
 	}
 }
 
@@ -256,7 +319,7 @@ void reallocArgs() {
 	char *old_ptr = new_cmd.C_ARGS;		//Keep track of where new_cmd.C_ARGS was originally.
 	num_resizes++;						//Increment number of times the array was resized.
 
-	new_cmd.C_ARGS = (char *) realloc(new_cmd.C_ARGS, ARG_LENGTH * RESIZE_RATIO * num_resizes);
+	new_cmd.C_ARGS = (char *) realloc(new_cmd.C_ARGS, ARG_LENGTH * RESIZE_RATIO * (num_resizes + 1) * sizeof(char *));
 
 	//If the location new_cmd.C_ARGS was pointing moved, all the pointers in C_ARGS_PNTR need to be updated.
 	if(old_ptr != new_cmd.C_ARGS) {
@@ -269,6 +332,10 @@ void reallocArgs() {
 			new_cmd.C_ARGS_PNTR[i++] = &new_cmd.C_ARGS[++j];
 		}
 	}
+}
+
+void reallocArgsPntr() {
+	new_cmd.C_ARGS_PNTR = (char**) realloc(new_cmd.C_ARGS_PNTR, INIT_ARGS * RESIZE_RATIO * (++pntr_resizes + 1) * sizeof(char **));
 }
 
 void replaceTilde(char *dest, char *filePath) {
@@ -337,7 +404,7 @@ void addArg(char *dest, char *src) {
 		int distance = dest - new_cmd.C_ARGS;
 		char *old = new_cmd.C_ARGS;
 
-		if(distance >= (ARG_LENGTH * RESIZE_RATIO * num_resizes)) {
+		if(distance >= (ARG_LENGTH * RESIZE_RATIO * (num_resizes + 1))) {
 			reallocArgs();
 
 			if(old != new_cmd.C_ARGS) {
@@ -359,5 +426,39 @@ int main(void) {
 	fprintf(stderr, "%s\n", "Beginning...");
 	fflush(stderr);
 	yyparse();
+	fprintf(stderr, "%s\n", "Printing...");
+	fflush(stderr);
+	fprintf(stderr, "%d\n", num_cmds);
+	fflush(stderr);
+
+	int i=0;
+	for(; i < num_cmds; i++) {
+		printf("Command %d name: %s\n", i, cmdtab[i].C_NAME);
+		printf("\tNumber of arguments: %d\n", cmdtab[i].C_NARGS);
+
+		int j=0;
+		for(; j < cmdtab[i].C_NARGS; j++) {
+			printf("\t\tArg %d: %s\n", j, cmdtab[i].C_ARGS_PNTR[j]);
+		}
+
+		if(cmdtab[i].C_INPUT.field == C_IO_FILE) {
+			printf("\tInput: %s\n", cmdtab[i].C_INPUT.io.file);
+		} else {
+			printf("\tInput: %d\n", cmdtab[i].C_INPUT.io.pointer);
+		}
+
+		if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
+			printf("\tOutput: %s\n", cmdtab[i].C_OUTPUT.io.file);
+		} else {
+			printf("\tOutput: %d\n", cmdtab[i].C_OUTPUT.io.pointer);
+		}
+
+		if(cmdtab[i].C_ERR.field == C_IO_FILE) {
+			printf("\tError: %s\n", cmdtab[i].C_ERR.io.file);
+		} else {
+			printf("\tError: %d\n", cmdtab[i].C_ERR.io.pointer);
+		}
+	}
+
 	return 0;
 }
