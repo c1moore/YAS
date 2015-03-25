@@ -12,30 +12,23 @@
 %%
 
 ^[ \t]*("./")?[a-zA-z0-9./]+				{
-												fprintf(stderr, "%s\n", "Lex1");
 												yylval.str = strdup(yytext);
 												return CMD;
 											}
 
-<PS>[ \t]*("./")?[a-zA-z0-9./]+					{
-												fprintf(stderr, "%s\n", "Lex2");
+<PS>("./")?[a-zA-z0-9./]+					{
 												BEGIN 0;
 												return CMD;
 											}
 
 <*>"|"										{
-												printf("Found pipe.\n");
-												fprintf(stderr, "%s\n", "Pipe");
-												fflush(stderr);
 												BEGIN PS;
-												fprintf(stderr, "%s\n", "Piping begun.");
-												return EOC;
+												return *yytext;
 											}
 
 -*[a-zA-z0-9.:/]+							|
 \"((.)*(\")*)*\"							|
 -*([a-zA-Z0-9.:/]*\\[ a-zA-Z0-9<>|"\&])*	{
-												fprintf(stderr, "%s\n", "Lex3");
 												yylval.str = strdup(yytext);
 												return ARG;
 											}
@@ -53,13 +46,11 @@
 ">>&"										return OUT_ERR_RA;
 
 ~"/"[a-zA-Z0-9./]*							{
-												fprintf(stderr, "%s\n", "Lex4");
 												yylval.str = strdup(yytext);
 												return EXPANDED_FILE;
 											}
 
 ~[a-zA-Z0-9]*"/"?[a-zA-Z0-9./]*				{
-												fprintf(stderr, "%s\n", "Lex5");
 												yylval.str = strdup(yytext);
 												return EXPANDED_USER;
 											}
