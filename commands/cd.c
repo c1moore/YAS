@@ -5,18 +5,18 @@
 #include <stdlib.h>
 
 int main(int argc, char *argv[]) {
-	if(argc > 2) {
-		printf("Error: Too many arguments. cd accepts only one argument.\n");	//displays error if more than one arg
-		exit(0);
-	}
-
 	int cd;
+
 	//if cd has no arguments go to the home dir else go to the directort in the argument
 	if(argc == 1) {
 		cd = chdir(getenv("HOME"));
 	}
-	else {
+	else if (argc == 2) {
 		cd = chdir(argv[1]);
+	}
+	else() {
+		printf("Error: Too many arguments. cd accepts only one argument.\n");	//displays error if more than one arg
+		exit(0);
 	}
 
 	//if chdir doesn't fail exit. Else report the error
@@ -24,6 +24,6 @@ int main(int argc, char *argv[]) {
 		exit(0);			
 	}
 	else {
-		perror("Error: ");
+		perror("Error");
 	}
 }
