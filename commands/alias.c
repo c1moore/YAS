@@ -24,6 +24,10 @@ int main(int argc, char *argv[]) {
 	list. Once completed it will print the alias and command added
 	in the form of alias = cmd */
 	else if (argc == 3) {
+		if(getLength(argv[2]) > CMD_LENGTH) {
+			exit(0);
+		}
+
 		curr = alias-head;
 		while (curr != NULL) {
 			curr = curr->next;
@@ -42,4 +46,12 @@ int main(int argc, char *argv[]) {
 	else() {
 		printf("Incorrect usage\n Usage: alias [alias name] [alias cmd]");
 	}
+}
+
+int getLength(char *argv) {
+	int length = 0;
+	while(argv) {
+		length++;
+	}
+	return length;
 }
