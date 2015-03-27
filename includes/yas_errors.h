@@ -10,5 +10,6 @@
 	#define USER_ERR	3		//Errors related to finding a user
 	#define ENV_ERR		4		//Errors related to environmental variables
 	#define YAS_ERR		5		//Errors related to general structure or execution of command
+	#define ARG_ERR		6		//Errors related to arguments
 
 #endif
