@@ -60,7 +60,7 @@ command :
 
 						  									if(strlen($1) > CMD_LENGTH) {
 						  										yyerror("Error: Command has too many characters.");
-						  										return 3;
+						  										return CMD_ERR;
 						  									}
 
 								  							strcpy(new_cmd.C_NAME, $1);
@@ -86,7 +86,7 @@ command :
 			| CMD arguments io_redirects end_of_command	{
 						  									if(strlen($1) > CMD_LENGTH) {
 						  										yyerror("Error: Command has too many characters.");
-						  										return 3;
+						  										return CMD_ERR;
 						  									}
 
 								  							strcpy(new_cmd.C_NAME, $1);
@@ -115,7 +115,7 @@ end_of_command :
 			| '|'										{
 			  												if(io_out_set == 1) {
 			  													yyerror("I/O Error: Output can only be redirected once per command.");
-			  													return 1;
+			  													return IO_ERR;
 			  												}
 						  									
 															io_pipe = 1;
@@ -137,7 +137,7 @@ io_redirect :
 			  '<' io_argument							{
 			  												if(io_in_set == 1) {
 			  													yyerror("I/O Error: Input can only be redirected once per command.");
-			  													return 1;
+			  													return IO_ERR;
 			  												}
 
 															new_cmd.C_INPUT.io.file = malloc(strlen($2));
@@ -150,7 +150,7 @@ io_redirect :
 			| '>' io_argument							{
 			  												if(io_out_set == 1) {
 			  													yyerror("I/O Error: Output can only be redirected once per command.");
-			  													return 1;
+			  													return IO_ERR;
 			  												}
 
 															new_cmd.C_OUTPUT.io.file = malloc(strlen($2));
@@ -164,7 +164,7 @@ io_redirect :
 			| ERR_2_FILE io_argument					{
 			  												if(io_err_set == 1) {
 			  													yyerror("I/O Error: Error can only be redirected once per command.");
-			  													return 1;
+			  													return IO_ERR;
 			  												}
 
 															new_cmd.C_ERR.io.file = malloc(strlen($2));
@@ -177,7 +177,7 @@ io_redirect :
 			| ERR_2_OUT									{
 			  												if(io_err_set == 1) {
 			  													yyerror("I/O Error: Error can only be redirected once per command.");
-			  													return 1;
+			  													return IO_ERR;
 			  												}
 
 															new_cmd.C_ERR.io.pointer = YAS_STDOUT;
@@ -261,7 +261,7 @@ io_argument :											/* IO arguments are handled slightly differently than re
 			  ARG										{
 						  									if(strlen($1) > PATH_MAX) {
 						  										yyerror("Error: Specified path too long.");
-						  										return 1;
+						  										return ARG_ERR;
 						  									}
 
 						  									$$ = $1;
@@ -271,19 +271,19 @@ io_argument :											/* IO arguments are handled slightly differently than re
 
 						  									if(strlen(argument) > PATH_MAX) {
 						  										yyerror("Error: Specified path too long (including the tilde expansion).");
-						  										return 1;
+						  										return ARG_ERR;
 							  								}
 
 							  								$$ = argument;
 														}
 			| EXPANDED_USER								{
 						  									if(replaceUserTilde($1) == 2) {
-						  										return 2;
+						  										return USER_ERR;
 						  									}
 
 						  									if(strlen(argument) > PATH_MAX) {
 						  										yyerror("Error: Specified path too long (including the tilde expansion).");
-						  										return 1;
+						  										return ARG_ERR;
 							  								}
 
 							  								$$ = argument;
