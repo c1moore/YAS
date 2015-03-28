@@ -1,5 +1,6 @@
 #include <pwd.h>
 #include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -8,9 +9,9 @@
 #include "yas.h"
 #include "y.tab.h"
 
-extern char *usrnm;					//Username
-extern char *homeDir;				//HOME environmental variable
-extern char *path;					//PATH environmental variable
+char *usrnm;						//Username
+char *homeDir;						//HOME environmental variable
+char *path;							//PATH environmental variable
 char *machine;						//Machine name
 char newPath = 0;					//Specifies if the path has changed since the last prompt was displayed.
 char *cwd;							//Current filepath
@@ -29,6 +30,7 @@ int main() {
 
 	while(1) {
 		printPrompt();
+
 		if(!getCommands()) {
 
 		}
@@ -44,7 +46,7 @@ void init_yas(void) {
 	//Disable Ctrl-C (interrupts).
 	sigintStopper->sa_handler = handleSignalInterrupt;
 	sigemptyset(&(sigintStopper->sa_mask));
-	sigintStopper->sa_flag = 0;
+	sigintStopper->sa_flags = 0;
 	
 	sigaction(SIGINT, sigintStopper, NULL);
 
@@ -56,9 +58,9 @@ void init_yas(void) {
 	num_aliases = 0;
 
 	//Initialize the head of the alias linked list.
-	alias_head = (yas_alias *) malloc(sizeof(struct yas_alias));
-	alias_head->alias = calloc(1, sizeof char);
-	alias_head->cmd = calloc(1, sizeof char);
+	alias_head = (struct yas_alias *) malloc(sizeof(struct yas_alias));
+	alias_head->alias = calloc(1, sizeof(char));
+	alias_head->cmd = calloc(1, sizeof(char));
 	alias_head->next = 0;
 
 	//Obtain the username.
@@ -70,19 +72,19 @@ void init_yas(void) {
 
 	int length = 0;
 	while(user->pw_name[length++]);
-	usrnm = (char *) malloc(length * sizeof char);
+	usrnm = (char *) malloc((length + 1) * sizeof(char));
 	strcpy(usrnm, user->pw_name);
 
 	//Obtain the machine name.
 	struct utsname *unameData;
-	if(uname(unameData) == NULL) {
+	if(!uname(unameData)) {
 		fprintf(stderr, "Error initializing YAS.  Exiting...\n");
 		exit(-1);
 	}
 
 	length = 0;
 	while(unameData->nodename[length++]);
-	machine = (char *) malloc(length * sizeof char);
+	machine = (char *) malloc((length + 1) * sizeof(char));
 	strcpy(machine, unameData->nodename);
 
 	//Get the HOME and PATH environmental variables.
@@ -96,16 +98,56 @@ void init_yas(void) {
 	if(!chdir(homeDir)) {
 		cwd = homeDir;
 	} else {
-		cwd = get_current_dir_name();
+		getcwd(cwd, 0);
 	}
 
 	clean_console();
 }
 
+/**
+* These commands need to be run each time a command is executed.
+*/
 void reinit(void) {
 	num_cmds = 0;
 	bg_mode = BG_MODE_FALSE;
 	builtin = BUILTIN_FALSE;
+
+	//Check to see if the HOME and PATH environmental variables changed (user switched to super user).  If so update them and set newPath to 1.
+	char *newHomeEnv = getenv("HOME");
+	char *newPathEnv = getenv("PATH");
+
+	if(strcmp(newHomeEnv, homeDir)) {
+		free(homeDir);
+		homeDir = newHomeEnv;
+
+		//Set the length of the home environmental variable.
+		while(homeDir[homeDirLength++]);
+
+		newPath = 1;
+	}
+
+	if(strcmp(newPathEnv, path)) {
+		free(path);
+		path = newPathEnv;
+	}
+
+	//Check to see if the user has changed and update usrnm if so.
+	struct passwd *user = getpwuid( geteuid() );
+	if(user == NULL) {
+		fprintf(stderr, "Error initializing YAS. Exiting...\n");
+		exit(-1);
+	} else {
+		if(strcmp(usrnm, user->pw_name)) {
+			//The user name has changed.
+			free(usrnm);
+
+			int length = 0;
+			while(user->pw_name[length++]);
+			usrnm = (char *) malloc((length + 1) * sizeof(char));
+
+			strcpy(usrnm, user->pw_name);
+		}
+	}
 }
 
 /**
@@ -120,16 +162,16 @@ int getCommands() {
 	}
 
 	switch(status) {
-		case: CMD_ERR
+		case CMD_ERR:
 			fprintf(stderr, "\n%s\n", "For more help, type help cmd.");
 			return status;
-		case: IO_ERR
+		case IO_ERR:
 			fprintf(stderr, "\n%s\n", "For more help, type help io.");
 			return status;
-		case: USER_ERR
+		case USER_ERR:
 			fprintf(stderr, "\n%s\n", "For more help, type help user.");
 			return status;
-		case: ARG_ERR
+		case ARG_ERR:
 			fprintf(stderr, "\n%s\n", "For more help, type help arg.");
 			return status;
 		default:
@@ -147,7 +189,8 @@ int getCommands() {
 void printPrompt() {
 	if(newPath) {
 		//The current working directory has changed, update cwd.
-		char *filepath = get_current_dir_name();
+		char *filepath;
+		getcwd(filepath, 0);
 
 		int i = 0;
 		while(filepath[i] && homeDir[i]) {
