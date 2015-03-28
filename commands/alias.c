@@ -6,15 +6,19 @@
 #include <yas.h>
 
 int main(int argc, char *argv[]) {
-	struct yas_alias *next *curr;		//gathers linked list structure
+	struct yas_alias *next, *curr;		//gathers linked list structure
 
 	/*if only the alias command is typed iterate through
 	the linked list of aliases and print all the aliases 
 	in the form of alias = cmd */
 	if (argc == 1) {
-		curr = alias-head;				
+		curr = alias_head;	
+		if(!num_aliases) {
+			printf("No aliases set\n");
+			exit(0);
+		}			
 		while (curr != NULL) {
-			printf("$s = $s\n",curr->alias,curr->cmd);
+			printf("%s = %s\n",curr->alias,curr->cmd);
 			curr = curr->next;
 		}
 		exit(0);
@@ -24,11 +28,11 @@ int main(int argc, char *argv[]) {
 	list. Once completed it will print the alias and command added
 	in the form of alias = cmd */
 	else if (argc == 3) {
-		if(getLength(argv[2]) > CMD_LENGTH) {
+		/*if(getLength(argv[2]) > CMD_LENGTH) {
 			exit(0);
-		}
+		}*/
 
-		curr = alias-head;
+		curr = alias_head;
 		while (curr != NULL) {
 			curr = curr->next;
 		}
@@ -38,20 +42,21 @@ int main(int argc, char *argv[]) {
 		curr->cmd = argv[2];
 		curr->next->next = NULL;
 
-		printf("$s = $s\n",curr->alias,curr->cmd);
+		printf("%s = %s\n",curr->alias,curr->cmd);
 		exit(0);
 	}
 	/*if anyother form of the alias command is typed, print out an error
 	and a message showing the correct usage of alias*/ 
-	else() {
+	else {
 		printf("Incorrect usage\n Usage: alias [alias name] [alias cmd]");
+		exit(0);
 	}
 }
 
-int getLength(char *argv) {
+/*int getLength(char *argv) {
 	int length = 0;
 	while(argv) {
 		length++;
 	}
 	return length;
-}
+}*/

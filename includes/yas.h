@@ -2,7 +2,7 @@
 	#define _YAS_H
 
 	#include "yas_limits.h"
-	#include "yas_struct.h"
+	#include "yas_structures.h"
 	#include "yas_errors.h"
 
 	/**
@@ -39,7 +39,7 @@
 	/**
 	* Specifies if the given command is a builtin command.
 	*/
-	char builtin
+	char builtin;
 
 	#define C_NAME_INIT		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	#define C_IO_IN_INIT	{YAS_STDIN, 0}
