@@ -4,12 +4,18 @@
 	/**
 	* Find the maximum path length for this system.  If there is no maximum path length
 	* set PATH_MAX to 4096, which seems to be a popular value for PATH_MAX on various
-	* systems.
+	* systems.  Also determine the maximum host name length (HOST_NAME_MAX).  Since
+	* some systems do not define this macro, use 255 which is guaranteed to be the max
+	* length by SUSv2.
 	*/
 	#include "limits.h"
 	#ifndef PATH_MAX	//Some systems do not define a PATH_MAX variable.  Define one if this is the case.
 		#define PATH_MAX	4096
 	#endif
+	#ifndef HOST_NAME_MAX
+		#define HOST_NAME_MAX 255
+	#endif
+
 
 	/**
 	* Define the initial number of args accepted in C_ARGS.  If more args are specified

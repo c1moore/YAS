@@ -9,6 +9,11 @@
 #include "yas.h"
 #include "y.tab.h"
 
+
+char bg_mode = BG_MODE_FALSE;
+char builtin = BUILTIN_FALSE;
+int yerrno = 0;
+
 char *usrnm;						//Username
 char *homeDir;						//HOME environmental variable
 char *path;							//PATH environmental variable
@@ -16,7 +21,7 @@ char *machine;						//Machine name
 char newPath = 0;					//Specifies if the path has changed since the last prompt was displayed.
 char *cwd;							//Current filepath
 int homeDirLength = 0;				//Length of the HOME environmental variable
-struct sigaction *sigintStopper;	//Signal handler for interruption signal.
+struct sigaction sigintStopper;		//Signal handler for interruption signal.
 
 void init_yas(void);
 void reinit(void);
@@ -44,18 +49,20 @@ int main() {
 */
 void init_yas(void) {
 	//Disable Ctrl-C (interrupts).
-	sigintStopper->sa_handler = handleSignalInterrupt;
-	sigemptyset(&(sigintStopper->sa_mask));
-	sigintStopper->sa_flags = 0;
+	sigintStopper.sa_handler = handleSignalInterrupt;
+	sigemptyset(&(sigintStopper.sa_mask));
+	sigintStopper.sa_flags = 0;
 	
-	sigaction(SIGINT, sigintStopper, NULL);
+	sigaction(SIGINT, &sigintStopper, NULL);
 
-	//Clear the console.
+	//Clear the console and display welcome messages.
 	write(1, "\E[H\E[2J",7);
+	fprintf(stdout, "%s\n\n", YAS_BANNER);
 
-	//Initialize counts.
+	//Initialize counts and yerrno.
 	num_cmds = 0;
 	num_aliases = 0;
+	yerrno = 0;
 
 	//Initialize the head of the alias linked list.
 	alias_head = (struct yas_alias *) malloc(sizeof(struct yas_alias));
@@ -76,16 +83,9 @@ void init_yas(void) {
 	strcpy(usrnm, user->pw_name);
 
 	//Obtain the machine name.
-	struct utsname *unameData;
-	if(!uname(unameData)) {
-		fprintf(stderr, "Error initializing YAS.  Exiting...\n");
-		exit(-1);
-	}
-
-	length = 0;
-	while(unameData->nodename[length++]);
-	machine = (char *) malloc((length + 1) * sizeof(char));
-	strcpy(machine, unameData->nodename);
+	char *hostName = (char *) malloc(HOST_NAME_MAX);
+	gethostname(hostName, HOST_NAME_MAX);
+	machine = hostName;
 
 	//Get the HOME and PATH environmental variables.
 	path = getenv("PATH");
@@ -100,8 +100,6 @@ void init_yas(void) {
 	} else {
 		getcwd(cwd, 0);
 	}
-
-	clean_console();
 }
 
 /**
@@ -109,6 +107,7 @@ void init_yas(void) {
 */
 void reinit(void) {
 	num_cmds = 0;
+	yerrno = 0;
 	bg_mode = BG_MODE_FALSE;
 	builtin = BUILTIN_FALSE;
 
@@ -121,6 +120,7 @@ void reinit(void) {
 		homeDir = newHomeEnv;
 
 		//Set the length of the home environmental variable.
+		homeDirLength = 0;
 		while(homeDir[homeDirLength++]);
 
 		newPath = 1;
@@ -148,6 +148,8 @@ void reinit(void) {
 			strcpy(usrnm, user->pw_name);
 		}
 	}
+
+	//clean_console();
 }
 
 /**
@@ -156,27 +158,33 @@ void reinit(void) {
 */
 int getCommands() {
 	int status = yyparse();
+	//clean_console();
+
+
+	//fprintf(stderr, "%d\n", status);
 
 	if(status != 0) {
 		clean_console();
+
+		switch(yerrno) {
+			case CMD_ERR:
+				fprintf(stderr, "\n%s\n", "For more help, type help cmd.");
+				return status;
+			case IO_ERR:
+				fprintf(stderr, "\n%s\n", "For more help, type help io.");
+				return status;
+			case USER_ERR:
+				fprintf(stderr, "\n%s\n", "For more help, type help user.");
+				return status;
+			case ARG_ERR:
+				fprintf(stderr, "\n%s\n", "For more help, type help arg.");
+				return status;
+			default:
+				return status;
+		}
 	}
 
-	switch(status) {
-		case CMD_ERR:
-			fprintf(stderr, "\n%s\n", "For more help, type help cmd.");
-			return status;
-		case IO_ERR:
-			fprintf(stderr, "\n%s\n", "For more help, type help io.");
-			return status;
-		case USER_ERR:
-			fprintf(stderr, "\n%s\n", "For more help, type help user.");
-			return status;
-		case ARG_ERR:
-			fprintf(stderr, "\n%s\n", "For more help, type help arg.");
-			return status;
-		default:
-			return status;
-	}
+	return status;
 }
 
 /**
@@ -225,7 +233,10 @@ void printPrompt() {
 * typed after the error.
 */
 void clean_console(void) {
-	while(yylex() != 0);
+	int rtoken;
+	do {
+		rtoken = yylex();
+	} while(rtoken != 0 && rtoken != EOC);
 }
 
 /**

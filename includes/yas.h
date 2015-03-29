@@ -34,15 +34,23 @@
 	* BG_MODE_FALSE, the shell should wait for the result of running this command
 	* before continuing.
 	*/
-	char bg_mode = BG_MODE_FALSE;
+	extern char bg_mode;
 
 	/**
 	* Specifies if the given command is a builtin command.
 	*/
-	char builtin;
+	extern char builtin;
+
+	/**
+	* The error code that caused YACC to abort (call YYABORT).  Should be set to 0
+	* when there is no error.
+	*/
+	extern int yerrno;
 
 	#define C_NAME_INIT		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	#define C_IO_IN_INIT	{YAS_STDIN, 0}
 	#define C_IO_OUT_INIT	{YAS_STDOUT, 0}
 	#define C_IO_ERR_INIT	{YAS_STDERR, 0}
+
+	#define YAS_BANNER		"Welcome to YAS!\n"
 #endif

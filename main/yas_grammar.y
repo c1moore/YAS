@@ -9,6 +9,7 @@
 	static const struct cmd empty_cmd = {C_NAME_INIT, 0, 0, 0, C_IO_IN_INIT, C_IO_OUT_INIT, C_IO_ERR_INIT};
 	struct cmd new_cmd = {C_NAME_INIT, 0, 0, 0, C_IO_IN_INIT, C_IO_OUT_INIT, C_IO_ERR_INIT};
 
+	extern int yerrno;
 	int num_resizes = 0, pntr_resizes = 0;								//Keep track of the number of times the C_ARGS and C_ARGS_PNTR has been resized.
 	char *argument;														//Used for tilde expansion of arguments.
 	char io_in_set = 0, io_out_set = 0, io_err_set = 0, io_pipe = 0;	//Determine if I/O has already been set.
@@ -44,12 +45,22 @@ statement :
 commands :
 			  commands command							{
 															if(reached_eoc == 1) {
-																return 0;
+																//Reinitialize all variables.
+																num_resizes = 0;
+																pntr_resizes = 0;
+																reached_eoc = 0;
+
+																YYACCEPT;
 															}
 														}
 			| /* NULL */								{
 															if(reached_eoc == 1) {
-																return 0;
+																//Reinitialize all variables.
+																num_resizes = 0;
+																pntr_resizes = 0;
+																reached_eoc = 0;
+
+																YYACCEPT;
 															}
 														}
 			;
@@ -60,7 +71,14 @@ command :
 
 						  									if(strlen($1) > CMD_LENGTH) {
 						  										yyerror("Error: Command has too many characters.");
-						  										return CMD_ERR;
+						  										yerrno = CMD_ERR;
+
+																//Reinitialize all variables.
+																num_resizes = 0;
+																pntr_resizes = 0;
+																reached_eoc = 0;
+
+						  										YYABORT;
 						  									}
 
 								  							strcpy(new_cmd.C_NAME, $1);
@@ -86,7 +104,14 @@ command :
 			| CMD arguments io_redirects end_of_command	{
 						  									if(strlen($1) > CMD_LENGTH) {
 						  										yyerror("Error: Command has too many characters.");
-						  										return CMD_ERR;
+						  										yerrno = CMD_ERR;
+
+																//Reinitialize all variables.
+																num_resizes = 0;
+																pntr_resizes = 0;
+																reached_eoc = 0;
+
+						  										YYABORT;
 						  									}
 
 								  							strcpy(new_cmd.C_NAME, $1);
@@ -115,7 +140,14 @@ end_of_command :
 			| '|'										{
 			  												if(io_out_set == 1) {
 			  													yyerror("I/O Error: Output can only be redirected once per command.");
-			  													return IO_ERR;
+			  													yerrno = IO_ERR;
+
+																//Reinitialize all variables.
+																num_resizes = 0;
+																pntr_resizes = 0;
+																reached_eoc = 0;
+
+			  													YYABORT;
 			  												}
 						  									
 															io_pipe = 1;
@@ -137,7 +169,14 @@ io_redirect :
 			  '<' io_argument							{
 			  												if(io_in_set == 1) {
 			  													yyerror("I/O Error: Input can only be redirected once per command.");
-			  													return IO_ERR;
+			  													yerrno = IO_ERR;
+
+																//Reinitialize all variables.
+																num_resizes = 0;
+																pntr_resizes = 0;
+																reached_eoc = 0;
+
+			  													YYABORT;
 			  												}
 
 															new_cmd.C_INPUT.io.file = malloc(strlen($2));
@@ -150,7 +189,14 @@ io_redirect :
 			| '>' io_argument							{
 			  												if(io_out_set == 1) {
 			  													yyerror("I/O Error: Output can only be redirected once per command.");
-			  													return IO_ERR;
+			  													yerrno = IO_ERR;
+
+																//Reinitialize all variables.
+																num_resizes = 0;
+																pntr_resizes = 0;
+																reached_eoc = 0;
+
+			  													YYABORT;
 			  												}
 
 															new_cmd.C_OUTPUT.io.file = malloc(strlen($2));
@@ -164,7 +210,14 @@ io_redirect :
 			| ERR_2_FILE io_argument					{
 			  												if(io_err_set == 1) {
 			  													yyerror("I/O Error: Error can only be redirected once per command.");
-			  													return IO_ERR;
+			  													yerrno = IO_ERR;
+
+																//Reinitialize all variables.
+																num_resizes = 0;
+																pntr_resizes = 0;
+																reached_eoc = 0;
+
+			  													YYABORT;
 			  												}
 
 															new_cmd.C_ERR.io.file = malloc(strlen($2));
@@ -177,7 +230,14 @@ io_redirect :
 			| ERR_2_OUT									{
 			  												if(io_err_set == 1) {
 			  													yyerror("I/O Error: Error can only be redirected once per command.");
-			  													return IO_ERR;
+			  													yerrno = IO_ERR;
+
+																//Reinitialize all variables.
+																num_resizes = 0;
+																pntr_resizes = 0;
+																reached_eoc = 0;
+
+			  													YYABORT;
 			  												}
 
 															new_cmd.C_ERR.io.pointer = YAS_STDOUT;
@@ -250,7 +310,14 @@ argument :
 						  									}
 
 						  									if(replaceUserTilde($1) == 2) {
-						  										return 2;
+						  										yerrno = USER_ERR;
+
+																//Reinitialize all variables.
+																num_resizes = 0;
+																pntr_resizes = 0;
+																reached_eoc = 0;
+
+						  										YYABORT;
 						  									}
 
 						  									addArg(new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS], argument);
@@ -261,7 +328,14 @@ io_argument :											/* IO arguments are handled slightly differently than re
 			  ARG										{
 						  									if(strlen($1) > PATH_MAX) {
 						  										yyerror("Error: Specified path too long.");
-						  										return ARG_ERR;
+						  										yerrno = ARG_ERR;
+
+																//Reinitialize all variables.
+																num_resizes = 0;
+																pntr_resizes = 0;
+																reached_eoc = 0;
+
+						  										YYABORT;
 						  									}
 
 						  									$$ = $1;
@@ -271,19 +345,34 @@ io_argument :											/* IO arguments are handled slightly differently than re
 
 						  									if(strlen(argument) > PATH_MAX) {
 						  										yyerror("Error: Specified path too long (including the tilde expansion).");
-						  										return ARG_ERR;
+						  										yerrno = ARG_ERR;
+
+																//Reinitialize all variables.
+																num_resizes = 0;
+																pntr_resizes = 0;
+																reached_eoc = 0;
+
+						  										YYABORT;
 							  								}
 
 							  								$$ = argument;
 														}
 			| EXPANDED_USER								{
 						  									if(replaceUserTilde($1) == 2) {
-						  										return USER_ERR;
+						  										yerrno = USER_ERR;
+						  										YYABORT;
 						  									}
 
 						  									if(strlen(argument) > PATH_MAX) {
 						  										yyerror("Error: Specified path too long (including the tilde expansion).");
-						  										return ARG_ERR;
+						  										yerrno = ARG_ERR;
+
+																//Reinitialize all variables.
+																num_resizes = 0;
+																pntr_resizes = 0;
+																reached_eoc = 0;
+																
+						  										YYABORT;
 							  								}
 
 							  								$$ = argument;
@@ -417,39 +506,39 @@ void yyerror(char *err) {
 	fprintf(stderr, "%s\n", err);
 }
 
-int main(void) {
-	yyparse();
+// int main(void) {
+// 	yyparse();
 
-	int i=0;
-	for(; i < num_cmds; i++) {
-		printf("Command %d name: %s\n", i, cmdtab[i].C_NAME);
-		printf("\tNumber of arguments: %d\n", cmdtab[i].C_NARGS);
+// 	int i=0;
+// 	for(; i < num_cmds; i++) {
+// 		printf("Command %d name: %s\n", i, cmdtab[i].C_NAME);
+// 		printf("\tNumber of arguments: %d\n", cmdtab[i].C_NARGS);
 
-		int j=0;
-		for(; j < cmdtab[i].C_NARGS; j++) {
-			printf("\t\tArg %d: %s\n", j, cmdtab[i].C_ARGS_PNTR[j]);
-		}
+// 		int j=0;
+// 		for(; j < cmdtab[i].C_NARGS; j++) {
+// 			printf("\t\tArg %d: %s\n", j, cmdtab[i].C_ARGS_PNTR[j]);
+// 		}
 
-		if(cmdtab[i].C_INPUT.field == C_IO_FILE) {
-			printf("\tInput: %s\n", cmdtab[i].C_INPUT.io.file);
-		} else {
-			printf("\tInput: %d\n", cmdtab[i].C_INPUT.io.pointer);
-		}
+// 		if(cmdtab[i].C_INPUT.field == C_IO_FILE) {
+// 			printf("\tInput: %s\n", cmdtab[i].C_INPUT.io.file);
+// 		} else {
+// 			printf("\tInput: %d\n", cmdtab[i].C_INPUT.io.pointer);
+// 		}
 
-		if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
-			printf("\tOutput: %s\n", cmdtab[i].C_OUTPUT.io.file);
-		} else {
-			printf("\tOutput: %d\n", cmdtab[i].C_OUTPUT.io.pointer);
-		}
+// 		if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
+// 			printf("\tOutput: %s\n", cmdtab[i].C_OUTPUT.io.file);
+// 		} else {
+// 			printf("\tOutput: %d\n", cmdtab[i].C_OUTPUT.io.pointer);
+// 		}
 
-		if(cmdtab[i].C_ERR.field == C_IO_FILE) {
-			printf("\tError: %s\n", cmdtab[i].C_ERR.io.file);
-		} else {
-			printf("\tError: %d\n", cmdtab[i].C_ERR.io.pointer);
-		}
-	}
+// 		if(cmdtab[i].C_ERR.field == C_IO_FILE) {
+// 			printf("\tError: %s\n", cmdtab[i].C_ERR.io.file);
+// 		} else {
+// 			printf("\tError: %d\n", cmdtab[i].C_ERR.io.pointer);
+// 		}
+// 	}
 
-	printf("\tBackground: %s", bg_mode ? "Yes" : "No");
+// 	printf("\tBackground: %s", bg_mode ? "Yes" : "No");
 
-	return 0;
-}
+// 	return 0;
+// }
