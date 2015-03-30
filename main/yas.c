@@ -12,6 +12,7 @@
 
 char bg_mode = BG_MODE_FALSE;
 char builtin = BUILTIN_FALSE;
+char garbage_collected = GC_FALSE;	//Initialize to false.  It is the duty of YACC to set it to GC_TRUE if EOC is reached.
 int yerrno = 0;
 
 char *usrnm;						//Username
@@ -139,6 +140,7 @@ void reinit(void) {
 	yerrno = 0;
 	bg_mode = BG_MODE_FALSE;
 	builtin = BUILTIN_FALSE;
+	garbage_collected = GC_FALSE;
 
 	//Check to see if the HOME and PATH environmental variables changed (user switched to super user).  If so update them and set newPath to 1.
 	char *newHomeEnv = getenv("HOME");
@@ -178,8 +180,6 @@ void reinit(void) {
 			strcpy(usrnm, user->pw_name);
 		}
 	}
-
-	//clean_console();
 }
 
 /**
@@ -188,13 +188,10 @@ void reinit(void) {
 */
 int getCommands() {
 	int status = yyparse();
-	//clean_console();
-
-
-	//fprintf(stderr, "%d\n", status);
 
 	if(status != 0) {
-		clean_console();
+		if(garbage_collected == GC_FALSE)
+			clean_console();
 
 		switch(yerrno) {
 			case CMD_ERR:
@@ -210,6 +207,7 @@ int getCommands() {
 				fprintf(stderr, "\n%s\n", "For more help, type help arg.");
 				return status;
 			default:
+				fprintf(stderr, "\n%s\n", "For more help, type help.");
 				return status;
 		}
 	}

@@ -7,9 +7,51 @@
 	void yyerror(char *);
 %}
 
-%x PS
+%x PS BI
 
 %%
+
+<*>alias|ALIAS 								{
+												BEGIN BI;
+												yylval.str = strdup("alias");
+												return BUILTIN;
+											}
+
+<*>bye|BYE									{
+												BEGIN BI;
+												yylval.str = strdup("bye");
+												return BUILTIN;
+											}
+
+<*>cd|CD 									{
+												BEGIN BI;
+												yylval.str = strdup("cd");
+												return BUILTIN;
+											}
+
+<*>printenv|PRINTENV						{
+												BEGIN BI;
+												yylval.str = strdup("printenv");
+												return BUILTIN;
+											}
+
+<*>setenv|SETENV							{
+												BEGIN BI;
+												yylval.str = strdup("setenv");
+												return BUILTIN;
+											}
+
+<*>unalias|UNALIAS							{
+												BEGIN BI;
+												yylval.str = strdup("unalias");
+												return BUILTIN;
+											}
+
+<*>unsetenv|UNSETENV						{
+												BEGIN BI;
+												yylval.str = strdup("unsetenv");
+												return BUILTIN;
+											}
 
 ^[ \t]*("./")?[a-zA-z0-9./]+				{
 												yylval.str = strdup(yytext);
@@ -22,12 +64,12 @@
 												return CMD;
 											}
 
-<*>"|"										{
+<INITIAL,PS>"|"								{
 												BEGIN PS;
 												return *yytext;
 											}
 
--*[a-zA-z0-9.:/]+							|
+<INITIAL,BI>-*[a-zA-z0-9.:/]+				|
 \"((.)*(\")*)*\"							|
 -*([a-zA-Z0-9.:/]*\\[ a-zA-Z0-9<>|"\&])*	{
 												yylval.str = strdup(yytext);
@@ -58,9 +100,15 @@
 
 <*>[ \t]+									/* ignore white space */;
 
-<*>.										yyerror("What is this nonsense?! I don't know this char!");
+<*>.										{
+												BEGIN 0;
+												return ERROR;
+											}
 
-\n 											return EOC;
+<INITIAL,BI>\n								{
+												BEGIN 0;
+												return EOC;
+											}
 
 %%
 

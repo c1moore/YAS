@@ -18,6 +18,12 @@
 	#define BUILTIN_FALSE	0
 
 	/**
+	* Define the possible values for garbage_collected.
+	*/
+	#define GC_TRUE			1
+	#define GC_FALSE		2
+
+	/**
 	* The values to enter for C_INPUT and C_OUTPUT when standard input,
 	* standard output, and standard error should be used.
 	*/
@@ -40,6 +46,14 @@
 	* Specifies if the given command is a builtin command.
 	*/
 	extern char builtin;
+
+	/**
+	* Keep a record of where the error occurred.  If EOC (\n) was reached, Lex read
+	* all the tokens for the last command and this should be set to GC_TRUE.
+	* Otherwise, tokens remain and need to be cleaned before the next command is
+	* read.
+	*/
+	extern char garbage_collected;
 
 	/**
 	* The error code that caused YACC to abort (call YYABORT).  Should be set to 0

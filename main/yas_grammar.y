@@ -20,6 +20,7 @@
 	void replaceTilde(char *);
 	char replaceUserTilde(char *);
 	void addArg(char *, char *);
+	void reinitializeGlobals();
 
 	void yyerror(char *);
 
@@ -33,7 +34,7 @@
 
 %type <str> io_argument
 
-%token <str> CMD ARG EXPANDED_FILE EXPANDED_USER OUT_RA OUT_ERR_R OUT_ERR_RA ERR_2_FILE ERR_2_OUT
+%token <str> CMD ARG EXPANDED_FILE EXPANDED_USER OUT_RA OUT_ERR_R OUT_ERR_RA ERR_2_FILE ERR_2_OUT BUILTIN ERROR
 %token <eoc> EOC
 
 %%
@@ -45,20 +46,14 @@ statement :
 commands :
 			  commands command							{
 															if(reached_eoc == 1) {
-																//Reinitialize all variables.
-																num_resizes = 0;
-																pntr_resizes = 0;
-																reached_eoc = 0;
+																reinitializeGlobals();
 
 																YYACCEPT;
 															}
 														}
 			| /* NULL */								{
 															if(reached_eoc == 1) {
-																//Reinitialize all variables.
-																num_resizes = 0;
-																pntr_resizes = 0;
-																reached_eoc = 0;
+																reinitializeGlobals();
 
 																YYACCEPT;
 															}
@@ -73,10 +68,7 @@ command :
 						  										yyerror("Error: Command has too many characters.");
 						  										yerrno = CMD_ERR;
 
-																//Reinitialize all variables.
-																num_resizes = 0;
-																pntr_resizes = 0;
-																reached_eoc = 0;
+																reinitializeGlobals();
 
 						  										YYABORT;
 						  									}
@@ -98,11 +90,37 @@ command :
 																io_in_set = 1;
 								  							}
 														}
+			| BUILTIN arguments EOC						{
+															checkAndAlloc();
+
+															garbage_collected = GC_TRUE;	//EOC was read.
+
+															//No need to check the length of the command since the regex is very strict for builtins.
+															//Make sure this is the only command.  If not, return an error.
+															if(num_cmds > 0) {
+																yyerror("Error: I/O redirection is not supported with builtin commands.");
+																yerrno = BUILTIN_ERR;
+
+																reinitializeGlobals();
+
+						  										YYABORT;
+															}
+
+								  							strcpy(new_cmd.C_NAME, $1);
+
+								  							cmdtab[num_cmds++] = new_cmd;
+
+								  							reached_eoc = 1;
+								  							builtin = BUILTIN_TRUE;
+
+								  							new_cmd = empty_cmd;
+
+								  							io_in_set = io_out_set = io_err_set = num_resizes = pntr_resizes = 0;
+														}
 			| EOC										{
-															//Reinitialize all variables.
-															num_resizes = 0;
-															pntr_resizes = 0;
-															reached_eoc = 0;
+															reinitializeGlobals();
+
+															garbage_collected = GC_TRUE;
 
 															YYACCEPT;
 														}
@@ -111,16 +129,14 @@ command :
 end_of_command :
 			  EOC 										{
 			  												reached_eoc = 1;
+			  												garbage_collected = GC_TRUE;
 														}
 			| '|'										{
 			  												if(io_out_set == 1) {
 			  													yyerror("I/O Error: Output can only be redirected once per command.");
 			  													yerrno = IO_ERR;
 
-																//Reinitialize all variables.
-																num_resizes = 0;
-																pntr_resizes = 0;
-																reached_eoc = 0;
+																reinitializeGlobals();
 
 			  													YYABORT;
 			  												}
@@ -146,10 +162,7 @@ io_redirect :
 			  													yyerror("I/O Error: Input can only be redirected once per command.");
 			  													yerrno = IO_ERR;
 
-																//Reinitialize all variables.
-																num_resizes = 0;
-																pntr_resizes = 0;
-																reached_eoc = 0;
+																reinitializeGlobals();
 
 			  													YYABORT;
 			  												}
@@ -166,10 +179,7 @@ io_redirect :
 			  													yyerror("I/O Error: Output can only be redirected once per command.");
 			  													yerrno = IO_ERR;
 
-																//Reinitialize all variables.
-																num_resizes = 0;
-																pntr_resizes = 0;
-																reached_eoc = 0;
+																reinitializeGlobals();
 
 			  													YYABORT;
 			  												}
@@ -187,10 +197,7 @@ io_redirect :
 			  													yyerror("I/O Error: Error can only be redirected once per command.");
 			  													yerrno = IO_ERR;
 
-																//Reinitialize all variables.
-																num_resizes = 0;
-																pntr_resizes = 0;
-																reached_eoc = 0;
+																reinitializeGlobals();
 
 			  													YYABORT;
 			  												}
@@ -207,10 +214,7 @@ io_redirect :
 			  													yyerror("I/O Error: Error can only be redirected once per command.");
 			  													yerrno = IO_ERR;
 
-																//Reinitialize all variables.
-																num_resizes = 0;
-																pntr_resizes = 0;
-																reached_eoc = 0;
+																reinitializeGlobals();
 
 			  													YYABORT;
 			  												}
@@ -287,10 +291,7 @@ argument :
 						  									if(replaceUserTilde($1) == 2) {
 						  										yerrno = USER_ERR;
 
-																//Reinitialize all variables.
-																num_resizes = 0;
-																pntr_resizes = 0;
-																reached_eoc = 0;
+																reinitializeGlobals();
 
 						  										YYABORT;
 						  									}
@@ -305,10 +306,7 @@ io_argument :											/* IO arguments are handled slightly differently than re
 						  										yyerror("Error: Specified path too long.");
 						  										yerrno = ARG_ERR;
 
-																//Reinitialize all variables.
-																num_resizes = 0;
-																pntr_resizes = 0;
-																reached_eoc = 0;
+																reinitializeGlobals();
 
 						  										YYABORT;
 						  									}
@@ -322,10 +320,7 @@ io_argument :											/* IO arguments are handled slightly differently than re
 						  										yyerror("Error: Specified path too long (including the tilde expansion).");
 						  										yerrno = ARG_ERR;
 
-																//Reinitialize all variables.
-																num_resizes = 0;
-																pntr_resizes = 0;
-																reached_eoc = 0;
+																reinitializeGlobals();
 
 						  										YYABORT;
 							  								}
@@ -342,10 +337,7 @@ io_argument :											/* IO arguments are handled slightly differently than re
 						  										yyerror("Error: Specified path too long (including the tilde expansion).");
 						  										yerrno = ARG_ERR;
 
-																//Reinitialize all variables.
-																num_resizes = 0;
-																pntr_resizes = 0;
-																reached_eoc = 0;
+																reinitializeGlobals();
 																
 						  										YYABORT;
 							  								}
@@ -355,6 +347,19 @@ io_argument :											/* IO arguments are handled slightly differently than re
 			;
 
 %%
+
+void reinitializeGlobals() {
+	//Reinitialize all variables.
+	num_resizes = 0;
+	pntr_resizes = 0;
+	reached_eoc = 0;
+	io_in_set = 0;
+	io_out_set = 0;
+	io_err_set = 0;
+	io_pipe = 0;
+
+	new_cmd = empty_cmd;
+}
 
 void checkAndAlloc(void) {
 	if(!new_cmd.C_ARGS) {
