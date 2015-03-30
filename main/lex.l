@@ -18,6 +18,7 @@
 
 <PS>("./")?[a-zA-z0-9./]+					{
 												BEGIN 0;
+												yylval.str = strdup(yytext);
 												return CMD;
 											}
 

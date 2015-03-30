@@ -18,7 +18,7 @@ char *usrnm;						//Username
 char *homeDir;						//HOME environmental variable
 char *path;							//PATH environmental variable
 char *machine;						//Machine name
-char newPath = 0;					//Specifies if the path has changed since the last prompt was displayed.
+char newPath = 1;					//Specifies if the path has changed since the last prompt was displayed.
 char *cwd;							//Current filepath
 int homeDirLength = 0;				//Length of the HOME environmental variable
 struct sigaction sigintStopper;		//Signal handler for interruption signal.
@@ -37,7 +37,34 @@ int main() {
 		printPrompt();
 
 		if(!getCommands()) {
+			int i=0;
+			for(; i < num_cmds; i++) {
+				printf("Command %d name: %s\n", i, cmdtab[i].C_NAME);
+				printf("\tNumber of arguments: %d\n", cmdtab[i].C_NARGS);
 
+				int j=0;
+				for(; j < cmdtab[i].C_NARGS; j++) {
+					printf("\t\tArg %d: %s\n", j, cmdtab[i].C_ARGS_PNTR[j]);
+				}
+
+				if(cmdtab[i].C_INPUT.field == C_IO_FILE) {
+					printf("\tInput: %s\n", cmdtab[i].C_INPUT.io.file);
+				} else {
+					printf("\tInput: %d\n", cmdtab[i].C_INPUT.io.pointer);
+				}
+
+				if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
+					printf("\tOutput: %s\n", cmdtab[i].C_OUTPUT.io.file);
+				} else {
+					printf("\tOutput: %d\n", cmdtab[i].C_OUTPUT.io.pointer);
+				}
+
+				if(cmdtab[i].C_ERR.field == C_IO_FILE) {
+					printf("\tError: %s\n", cmdtab[i].C_ERR.io.file);
+				} else {
+					printf("\tError: %d\n", cmdtab[i].C_ERR.io.pointer);
+				}
+			}
 		}
 
 		reinit();
@@ -56,7 +83,8 @@ void init_yas(void) {
 	sigaction(SIGINT, &sigintStopper, NULL);
 
 	//Clear the console and display welcome messages.
-	write(1, "\E[H\E[2J",7);
+	system("echo \033c; echo \x1Bc; tput clear;");
+
 	fprintf(stdout, "%s\n\n", YAS_BANNER);
 
 	//Initialize counts and yerrno.
@@ -92,7 +120,8 @@ void init_yas(void) {
 	homeDir = getenv("HOME");
 
 	//Set the length of the home environmental variable.
-	while(homeDir[homeDirLength++]);
+	while(homeDir[homeDirLength])
+		homeDirLength++;
 
 	//Change current working directory to the home directory.  If that fails, simply use the current directory.
 	if(!chdir(homeDir)) {
@@ -121,7 +150,8 @@ void reinit(void) {
 
 		//Set the length of the home environmental variable.
 		homeDirLength = 0;
-		while(homeDir[homeDirLength++]);
+		while(homeDir[homeDirLength])
+			homeDirLength++;
 
 		newPath = 1;
 	}
@@ -197,8 +227,8 @@ int getCommands() {
 void printPrompt() {
 	if(newPath) {
 		//The current working directory has changed, update cwd.
-		char *filepath;
-		getcwd(filepath, 0);
+		char *filepath = (char *) malloc((PATH_MAX + 1) * sizeof(char));
+		getcwd(filepath, PATH_MAX + 1);
 
 		int i = 0;
 		while(filepath[i] && homeDir[i]) {
@@ -217,14 +247,22 @@ void printPrompt() {
 			while(filepath[i])
 				cwd[j++] = filepath[i++];
 
+			cwd[j] = 0;
+
 			free(filepath);
 		} else {
+			int length = 0;
+			while(filepath[length++]);
+
+			filepath = (char *) realloc(filepath, (length + 1) * sizeof(char));
+
 			cwd = filepath;
 		}
 
+		newPath = 0;
 	}
 
-	fprintf(stdout, "%s@%s: %s> ", usrnm, machine, cwd);
+	fprintf(stdout, "%s@%s:%s> ", usrnm, machine, cwd);
 	fflush(stdout);
 }
 

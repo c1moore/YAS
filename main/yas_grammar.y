@@ -66,7 +66,7 @@ commands :
 			;
 
 command :
-			  CMD end_of_command						{
+			  CMD arguments io_redirects end_of_command	{
 															checkAndAlloc();
 
 						  									if(strlen($1) > CMD_LENGTH) {
@@ -82,9 +82,6 @@ command :
 						  									}
 
 								  							strcpy(new_cmd.C_NAME, $1);
-								  							new_cmd.C_NARGS = 0,
-								  							new_cmd.C_ARGS[0] = '\0',
-								  							new_cmd.C_ARGS_PNTR[0] = &(new_cmd.C_ARGS[0]);
 
 								  							cmdtab[num_cmds++] = new_cmd;
 
@@ -94,42 +91,20 @@ command :
 
 								  							//Set the input for the next command if there was a pipe.
 								  							if(io_pipe) {
-								  								new_cmd.C_INPUT.io.pointer = num_cmds + 1;
+								  								new_cmd.C_INPUT.io.pointer = num_cmds - 1;
 																new_cmd.C_INPUT.field = C_IO_POINTER;
 
 																io_pipe = 0;
 																io_in_set = 1;
 								  							}
-							  							}
-			| CMD arguments io_redirects end_of_command	{
-						  									if(strlen($1) > CMD_LENGTH) {
-						  										yyerror("Error: Command has too many characters.");
-						  										yerrno = CMD_ERR;
+														}
+			| EOC										{
+															//Reinitialize all variables.
+															num_resizes = 0;
+															pntr_resizes = 0;
+															reached_eoc = 0;
 
-																//Reinitialize all variables.
-																num_resizes = 0;
-																pntr_resizes = 0;
-																reached_eoc = 0;
-
-						  										YYABORT;
-						  									}
-
-								  							strcpy(new_cmd.C_NAME, $1);
-
-								  							cmdtab[num_cmds++] = new_cmd;
-
-								  							new_cmd = empty_cmd;
-
-								  							io_in_set = io_out_set = io_err_set = num_resizes = pntr_resizes = 0;
-
-								  							//Set the input for the next command if there was a pipe.
-								  							if(io_pipe) {
-								  								new_cmd.C_INPUT.io.pointer = num_cmds + 1;
-																new_cmd.C_INPUT.field = C_IO_POINTER;
-
-																io_pipe = 0;
-																io_in_set = 1;
-								  							}
+															YYACCEPT;
 														}
 			;
 
