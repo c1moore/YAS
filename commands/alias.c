@@ -23,6 +23,7 @@ int alias(int argc, char *argv[]) {
 		}
 		exit(0);
 	}
+
 	/*if alias alias-name cmd is typed this goes throught the 
 	aliastab and adds the new alias to the tail of the aliastab
 	list. Once completed it will print the alias and command added
@@ -31,6 +32,12 @@ int alias(int argc, char *argv[]) {
 		/*if(getLength(argv[2]) > CMD_LENGTH) {
 			exit(0);
 		}*/
+
+		//stops aliases being set to themselves
+		if(argv[1] == argv[2]) {
+			printf("You can't do that");
+			exit(0);
+		}
 
 		curr = alias_head;
 		while (curr != NULL) {
@@ -45,6 +52,7 @@ int alias(int argc, char *argv[]) {
 		printf("%s = %s\n",curr->alias,curr->cmd);
 		exit(0);
 	}
+	
 	/*if anyother form of the alias command is typed, print out an error
 	and a message showing the correct usage of alias*/ 
 	else {

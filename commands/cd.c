@@ -21,7 +21,7 @@ int cd(int argc, char *argv[]) {
 
 	//if chdir doesn't fail exit. Else report the error
 	if(cd != -1) {
-		exit(0);			
+		return(0);			
 	}
 	else {
 		perror("Error");
