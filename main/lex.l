@@ -128,12 +128,12 @@
 
 ">>&"																return OUT_ERR_RA;
 
-<INITIAL,BI>~"/"[a-zA-Z0-9./]*										{
+<INITIAL,BI>~("/"[a-zA-Z0-9./]*)?									{
 																		yylval.str = strdup(yytext);
 																		return EXPANDED_FILE;
 																	}
 
-<INITIAL,BI>~[a-zA-Z0-9]*"/"?[a-zA-Z0-9./]*							{
+<INITIAL,BI>~[a-zA-Z0-9]+"/"?[a-zA-Z0-9./]*							{
 																		yylval.str = strdup(yytext);
 																		return EXPANDED_USER;
 																	}
