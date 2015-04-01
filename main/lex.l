@@ -11,104 +11,112 @@
 
 %%
 
-<*>alias|ALIAS 								{
-												BEGIN BI;
-												yylval.str = strdup("alias");
-												return BUILTIN;
-											}
+<*>alias|ALIAS 										{
+														BEGIN BI;
+														yylval.str = strdup("alias");
+														return BUILTIN;
+													}
 
-<*>bye|BYE									{
-												BEGIN BI;
-												yylval.str = strdup("bye");
-												return BUILTIN;
-											}
+<*>bye|BYE											{
+														BEGIN BI;
+														yylval.str = strdup("bye");
+														return BUILTIN;
+													}
 
-<*>cd|CD 									{
-												BEGIN BI;
-												yylval.str = strdup("cd");
-												return BUILTIN;
-											}
+<*>cd|CD 											{
+														BEGIN BI;
+														yylval.str = strdup("cd");
+														return BUILTIN;
+													}
 
-<*>printenv|PRINTENV						{
-												BEGIN BI;
-												yylval.str = strdup("printenv");
-												return BUILTIN;
-											}
+<*>printenv|PRINTENV								{
+														BEGIN BI;
+														yylval.str = strdup("printenv");
+														return BUILTIN;
+													}
 
-<*>setenv|SETENV							{
-												BEGIN BI;
-												yylval.str = strdup("setenv");
-												return BUILTIN;
-											}
+<*>setenv|SETENV									{
+														BEGIN BI;
+														yylval.str = strdup("setenv");
+														return BUILTIN;
+													}
 
-<*>unalias|UNALIAS							{
-												BEGIN BI;
-												yylval.str = strdup("unalias");
-												return BUILTIN;
-											}
+<*>unalias|UNALIAS									{
+														BEGIN BI;
+														yylval.str = strdup("unalias");
+														return BUILTIN;
+													}
 
-<*>unsetenv|UNSETENV						{
-												BEGIN BI;
-												yylval.str = strdup("unsetenv");
-												return BUILTIN;
-											}
+<*>unsetenv|UNSETENV								{
+														BEGIN BI;
+														yylval.str = strdup("unsetenv");
+														return BUILTIN;
+													}
 
-^[ \t]*("./")?[a-zA-z0-9./]+				{
-												yylval.str = strdup(yytext);
-												return CMD;
-											}
+^[ \t]*("./")?[a-zA-Z0-9./]+						{
+														yylval.str = strdup(yytext);
+														return CMD;
+													}
 
-<PS>("./")?[a-zA-z0-9./]+					{
-												BEGIN 0;
-												yylval.str = strdup(yytext);
-												return CMD;
-											}
+<PS>("./")?[a-zA-Z0-9./]+							{
+														BEGIN 0;
+														yylval.str = strdup(yytext);
+														return CMD;
+													}
 
-<INITIAL,PS>"|"								{
-												BEGIN PS;
-												return *yytext;
-											}
+<INITIAL,PS>"|"										{
+														BEGIN PS;
+														return *yytext;
+													}
 
-<INITIAL,BI>-*[a-zA-z0-9.:/]+				|
-\"((.)*(\")*)*\"							|
--*([a-zA-Z0-9.:/]*\\[ a-zA-Z0-9<>|"\&])*	{
-												yylval.str = strdup(yytext);
-												return ARG;
-											}
+<INITIAL,BI>-*[a-zA-Z0-9.:/]+						|
+\"((.)*(\")*)*\"									|
+-*([a-zA-Z0-9.:/]*\\[ a-zA-Z0-9<>|"\&])*			{
+														yylval.str = strdup(yytext);
+														return ARG;
+													}
 
-2>											return ERR_2_FILE;
+<INITIAL,BI>"${"-*[a-zA-Z0-9.:/]+"}"				|
+"${"(\"((.)*(\")*)*\")"}"							|
+"${"(-*([a-zA-Z0-9.:/]*\\[ a-zA-Z0-9<>|"\&])*)"}"	{
+														yytext[yyleng - 1] = 0;					/* Remove the trailing '}' */
+														yylval.str = strdup(&yytext[2]);		/* Don't copy the '${' */
+														return ENV_VAR;
+													}
 
-2>&1										return ERR_2_OUT;
+2>													return ERR_2_FILE;
 
-[<>&]										return *yytext;
+2>&1												return ERR_2_OUT;
 
-">>"										return OUT_RA;
+[<>&]												return *yytext;
 
-">&"										return OUT_ERR_R;
+">>"												return OUT_RA;
 
-">>&"										return OUT_ERR_RA;
+">&"												return OUT_ERR_R;
 
-~"/"[a-zA-Z0-9./]*							{
-												yylval.str = strdup(yytext);
-												return EXPANDED_FILE;
-											}
+">>&"												return OUT_ERR_RA;
 
-~[a-zA-Z0-9]*"/"?[a-zA-Z0-9./]*				{
-												yylval.str = strdup(yytext);
-												return EXPANDED_USER;
-											}
+~"/"[a-zA-Z0-9./]*									{
+														yylval.str = strdup(yytext);
+														return EXPANDED_FILE;
+													}
 
-<*>[ \t]+									/* ignore white space */;
+~[a-zA-Z0-9]*"/"?[a-zA-Z0-9./]*						{
+														yylval.str = strdup(yytext);
+														return EXPANDED_USER;
+													}
 
-<*>.										{
-												BEGIN 0;
-												return ERROR;
-											}
+<*>[ \t]+											/* ignore white space */;
 
-<INITIAL,BI>\n								{
-												BEGIN 0;
-												return EOC;
-											}
+<*>.												{
+														BEGIN 0;
+														return ERROR;
+													}
+
+<INITIAL,BI>\n										{
+														BEGIN 0;
+														return EOC;
+													}
 
 %%
 
