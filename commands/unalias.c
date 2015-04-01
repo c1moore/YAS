@@ -9,7 +9,7 @@ int unalias(int argc, char *argv[]) {
 	for the given alias-name and remove it from alias tab. If the 
 	alias-name is not found it will return an error to the console 
 	reporting this to the user*/
-	else if (argc == 2) {
+	if (argc == 2) {
 		/*if(getLength(argv[2]) > CMD_LENGTH) {
 			exit(0);
 		}*/
