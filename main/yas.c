@@ -44,14 +44,41 @@ int main() {
 			if(builtin != BUILTIN_FALSE) {
 				switch(builtin) {
 					case BUILTIN_ALIAS:
+						if(!alias(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+							//An error occurred.
+						}
+						break;
 					case BUILTIN_BYE:
+						fprintf(stdout, "Good-bye!\n");
+						exit(0);
 					case BUILTIN_CD:
+						if(!cd(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+							//An error occurred.
+						}
+						break;
 					case BUILTIN_PRNTENV:
+						if(!printenv(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+							//An error occurred.
+						}
+						break;
 					case BUILTIN_SETENV:
+						if(!setenv(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+							//An error occurred.
+						}
+						break;
 					case BUILTIN_UNALIAS:
+						if(!unalias(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+							//An error occurred.
+						}
+						break;
 					case BUILTIN_UNENV:
+						if(!unsetenv(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+							//An error occurred.
+						}
+						break;
 					default:
-						//Do not use if-else.  Default should fall through and execute command as regular command.  Instead, when done executing, each of the above cases should use reinit() and continue.
+						fprintf(stderr, "An error occurred recognizing your command.  Check your environmental variables and aliases to make sure you are not referencing a builtin command mistakenly.\n");
+						break;
 				}
 			} else {
 
