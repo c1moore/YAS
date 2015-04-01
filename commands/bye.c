@@ -5,5 +5,5 @@
 #include <stdlib.h>
 
 int bye(int argc, char *argv[]) {
-	return(1);
+	return(0);
 }
