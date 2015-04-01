@@ -69,8 +69,6 @@ command :
 						  										yyerror("Error: Command has too many characters.");
 						  										yerrno = CMD_ERR;
 
-																reinitializeGlobals();
-
 						  										YYABORT;
 						  									}
 
@@ -101,8 +99,6 @@ command :
 															if(num_cmds > 0) {
 																yyerror("Error: I/O redirection is not supported with builtin commands.");
 																yerrno = BUILTIN_ERR;
-
-																reinitializeGlobals();
 
 						  										YYABORT;
 															}
@@ -137,8 +133,6 @@ end_of_command :
 			  													yyerror("I/O Error: Output can only be redirected once per command.");
 			  													yerrno = IO_ERR;
 
-																reinitializeGlobals();
-
 			  													YYABORT;
 			  												}
 						  									
@@ -163,8 +157,6 @@ io_redirect :
 			  													yyerror("I/O Error: Input can only be redirected once per command.");
 			  													yerrno = IO_ERR;
 
-																reinitializeGlobals();
-
 			  													YYABORT;
 			  												}
 
@@ -179,8 +171,6 @@ io_redirect :
 			  												if(io_out_set == 1) {
 			  													yyerror("I/O Error: Output can only be redirected once per command.");
 			  													yerrno = IO_ERR;
-
-																reinitializeGlobals();
 
 			  													YYABORT;
 			  												}
@@ -198,8 +188,6 @@ io_redirect :
 			  													yyerror("I/O Error: Error can only be redirected once per command.");
 			  													yerrno = IO_ERR;
 
-																reinitializeGlobals();
-
 			  													YYABORT;
 			  												}
 
@@ -214,8 +202,6 @@ io_redirect :
 			  												if(io_err_set == 1) {
 			  													yyerror("I/O Error: Error can only be redirected once per command.");
 			  													yerrno = IO_ERR;
-
-																reinitializeGlobals();
 
 			  													YYABORT;
 			  												}
@@ -292,8 +278,6 @@ argument :
 						  									if(replaceUserTilde($1) == 2) {
 						  										yerrno = USER_ERR;
 
-																reinitializeGlobals();
-
 						  										YYABORT;
 						  									}
 
@@ -319,8 +303,6 @@ argument :
 						  										yyerror("Error: Environmental variable not found.");
 						  										yerrno = ENV_ERR;
 
-						  										reinitializeGlobals();
-
 						  										YYABORT;
 						  									}
 
@@ -334,8 +316,6 @@ io_argument :											/* IO arguments are handled slightly differently than re
 						  										yyerror("Error: Specified path too long.");
 						  										yerrno = ARG_ERR;
 
-																reinitializeGlobals();
-
 						  										YYABORT;
 						  									}
 
@@ -348,8 +328,6 @@ io_argument :											/* IO arguments are handled slightly differently than re
 						  										yyerror("Error: Specified path too long (including the tilde expansion).");
 						  										yerrno = ARG_ERR;
 
-																reinitializeGlobals();
-
 						  										YYABORT;
 							  								}
 
@@ -359,16 +337,12 @@ io_argument :											/* IO arguments are handled slightly differently than re
 						  									if(replaceUserTilde($1) == 2) {
 						  										yerrno = USER_ERR;
 
-						  										reinitializeGlobals();
-
 						  										YYABORT;
 						  									}
 
 						  									if(strlen(argument) > PATH_MAX) {
 						  										yyerror("Error: Specified path too long (including the tilde expansion).");
 						  										yerrno = ARG_ERR;
-
-																reinitializeGlobals();
 																
 						  										YYABORT;
 							  								}
@@ -380,16 +354,12 @@ io_argument :											/* IO arguments are handled slightly differently than re
 																yyerror("Error: Environmental variable not found.");
 																yerrno = ENV_ERR;
 
-																reinitializeGlobals();
-
 																YYABORT;
 															}
 
 															if(strlen(argument) > PATH_MAX) {
 																yyerror("Error: Specified path too long (including the expanded environmental variable).");
 																yerrno = ENV_ERR;
-
-																reinitializeGlobals();
 
 																YYABORT;
 															}
@@ -559,6 +529,8 @@ void addArg(char *dest, char *src) {
 
 void yyerror(char *err) {
 	fprintf(stderr, "%s\n", err);
+
+	reinitializeGlobals();		//After calling yyerror, YYABORT should be called so there should be no harm in reinitializing variables here.
 }
 
 // int main(void) {
