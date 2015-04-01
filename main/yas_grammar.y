@@ -509,12 +509,19 @@ char replaceUserTilde(char *word) {
 	strcpy(&argument[homeLength-1], filePath);		//Overwrite the NULL and possible '/' char at the end of home.
 }
 
-int replaceEnvVar(char *envVar) {
+int replaceEnvVar(char *envVar) { /*Need to do this iteratively until no replacement has been made.*/
 	char *value = getenv(envVar);
 	fprintf(stderr, "%s\n", envVar);
 
 	if(value == NULL)
 		return 1;
+
+	//Make sure this environmental variable doesn't simply point to another.  If so, keep replacing value with the value of the environmental variable.
+	char *temp = NULL;
+	while(temp = getenv(value)) {
+		free(value);
+		value = temp;
+	}
 
 	int length = 0;
 	while(value[length++]);
