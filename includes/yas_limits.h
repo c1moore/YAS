@@ -39,4 +39,10 @@
 	*/
 	#define CMD_LENGTH		50
 	#define CMDS_MAX		50
+
+	/**
+	* Define the total number of loops we will go through until we print an error message
+	* when expanding aliases/environmental variables.
+	*/
+	#define ALIAS_THRESHOLD	50
 #endif

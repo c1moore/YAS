@@ -3,6 +3,7 @@
 	#include <string.h>
 	#include <stdio.h>
 	#include "y.tab.h"
+	#include "yas.h"
 
 	void removeEscapes(char *, int);
 	void removeEscapedQuotes(char *, int);
@@ -17,42 +18,49 @@
 <*>alias|ALIAS 														{
 																		BEGIN BI;
 																		yylval.str = strdup("alias");
+																		builtin = BUILTIN_ALIAS;
 																		return BUILTIN;
 																	}
 
 <*>bye|BYE															{
 																		BEGIN BI;
 																		yylval.str = strdup("bye");
+																		builtin = BUILTIN_BYE;
 																		return BUILTIN;
 																	}
 
 <*>cd|CD 															{
 																		BEGIN BI;
 																		yylval.str = strdup("cd");
+																		builtin = BUILTIN_CD;
 																		return BUILTIN;
 																	}
 
 <*>printenv|PRINTENV												{
 																		BEGIN BI;
 																		yylval.str = strdup("printenv");
+																		builtin = BUILTIN_PRNTENV;
 																		return BUILTIN;
 																	}
 
 <*>setenv|SETENV													{
 																		BEGIN BI;
 																		yylval.str = strdup("setenv");
+																		builtin = BUILTIN_SETENV;
 																		return BUILTIN;
 																	}
 
 <*>unalias|UNALIAS													{
 																		BEGIN BI;
 																		yylval.str = strdup("unalias");
+																		builtin = BUILTIN_UNALIAS;
 																		return BUILTIN;
 																	}
 
 <*>unsetenv|UNSETENV												{
 																		BEGIN BI;
 																		yylval.str = strdup("unsetenv");
+																		builtin = BUILTIN_UNENV;
 																		return BUILTIN;
 																	}
 

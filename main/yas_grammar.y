@@ -112,7 +112,6 @@ command :
 								  							cmdtab[num_cmds++] = new_cmd;
 
 								  							reached_eoc = 1;
-								  							builtin = BUILTIN_TRUE;
 
 								  							new_cmd = empty_cmd;
 

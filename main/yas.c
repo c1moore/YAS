@@ -30,6 +30,7 @@ int getCommands(void);
 void clean_console(void);
 void handleSignalInterrupt(int);
 void printPrompt(void);
+void expandAliases(void);
 
 int main() {
 	init_yas();
@@ -38,34 +39,51 @@ int main() {
 		printPrompt();
 
 		if(!getCommands()) {
-			int i=0;
-			for(; i < num_cmds; i++) {
-				printf("Command %d name: %s\n", i, cmdtab[i].C_NAME);
-				printf("\tNumber of arguments: %d\n", cmdtab[i].C_NARGS);
+			expandAliases();
 
-				int j=0;
-				for(; j < cmdtab[i].C_NARGS; j++) {
-					printf("\t\tArg %d: %s\n", j, cmdtab[i].C_ARGS_PNTR[j]);
+			if(builtin != BUILTIN_FALSE) {
+				switch(builtin) {
+					case BUILTIN_ALIAS:
+					case BUILTIN_BYE:
+					case BUILTIN_CD:
+					case BUILTIN_PRNTENV:
+					case BUILTIN_SETENV:
+					case BUILTIN_UNALIAS:
+					case BUILTIN_UNENV:
+					default:
+						//Do not use if-else.  Default should fall through and execute command as regular command.  Instead, when done executing, each of the above cases should use reinit() and continue.
 				}
+			} else {
 
-				if(cmdtab[i].C_INPUT.field == C_IO_FILE) {
-					printf("\tInput: %s\n", cmdtab[i].C_INPUT.io.file);
-				} else {
-					printf("\tInput: %d\n", cmdtab[i].C_INPUT.io.pointer);
-				}
-
-				if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
-					printf("\tOutput: %s\n", cmdtab[i].C_OUTPUT.io.file);
-				} else {
-					printf("\tOutput: %d\n", cmdtab[i].C_OUTPUT.io.pointer);
-				}
-
-				if(cmdtab[i].C_ERR.field == C_IO_FILE) {
-					printf("\tError: %s\n", cmdtab[i].C_ERR.io.file);
-				} else {
-					printf("\tError: %d\n", cmdtab[i].C_ERR.io.pointer);
-				}
 			}
+			// int i=0;
+			// for(; i < num_cmds; i++) {
+			// 	printf("Command %d name: %s\n", i, cmdtab[i].C_NAME);
+			// 	printf("\tNumber of arguments: %d\n", cmdtab[i].C_NARGS);
+
+			// 	int j=0;
+			// 	for(; j < cmdtab[i].C_NARGS; j++) {
+			// 		printf("\t\tArg %d: %s\n", j, cmdtab[i].C_ARGS_PNTR[j]);
+			// 	}
+
+			// 	if(cmdtab[i].C_INPUT.field == C_IO_FILE) {
+			// 		printf("\tInput: %s\n", cmdtab[i].C_INPUT.io.file);
+			// 	} else {
+			// 		printf("\tInput: %d\n", cmdtab[i].C_INPUT.io.pointer);
+			// 	}
+
+			// 	if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
+			// 		printf("\tOutput: %s\n", cmdtab[i].C_OUTPUT.io.file);
+			// 	} else {
+			// 		printf("\tOutput: %d\n", cmdtab[i].C_OUTPUT.io.pointer);
+			// 	}
+
+			// 	if(cmdtab[i].C_ERR.field == C_IO_FILE) {
+			// 		printf("\tError: %s\n", cmdtab[i].C_ERR.io.file);
+			// 	} else {
+			// 		printf("\tError: %d\n", cmdtab[i].C_ERR.io.pointer);
+			// 	}
+			// }
 		}
 
 		reinit();
@@ -213,6 +231,19 @@ int getCommands() {
 	}
 
 	return status;
+}
+
+/**
+* Search cmdtab for aliases.  Expand all aliases until they do not reference either another
+* alias or environmental variable.  If we have expanded a single alias ALIAS_THRESHOLD times,
+* throw an error suspecting the user of trying to create an infinite loop.  Also handle error
+* checking:
+*		- A builtin command executed through an alias still should not have redirection
+*		- If the command includes arguments, the arguments should be parsed correctly.
+*		- Tildes should be expanded, too
+*/
+void expandAliases(void) {
+	
 }
 
 /**

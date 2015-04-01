@@ -14,8 +14,14 @@
 	/**
 	* Define the possible values for builtin.
 	*/
-	#define BUILTIN_TRUE	1
 	#define BUILTIN_FALSE	0
+	#define BUILTIN_ALIAS	1
+	#define BUILTIN_BYE		2
+	#define BUILTIN_CD		3
+	#define BUILTIN_PRNTENV	4
+	#define BUILTIN_SETENV	5
+	#define BUILTIN_UNALIAS	6
+	#define BUILTIN_UNENV	7
 
 	/**
 	* Define the possible values for garbage_collected.
