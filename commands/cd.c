@@ -14,7 +14,7 @@ int cd(int argc, char *argv[]) {
 	else if (argc == 2) {
 		cd = chdir(argv[1]);
 	}
-	else() {
+	else {
 		printf("Error: Too many arguments. cd accepts only one argument.\n");	//displays error if more than one arg
 		exit(0);
 	}
