@@ -6,8 +6,8 @@
 	#include <stdio.h>
 	#include "../includes/yas.h"
 
-	static const struct cmd empty_cmd = {C_NAME_INIT, 0, 0, 0, C_IO_IN_INIT, C_IO_OUT_INIT, C_IO_ERR_INIT};
-	struct cmd new_cmd = {C_NAME_INIT, 0, 0, 0, C_IO_IN_INIT, C_IO_OUT_INIT, C_IO_ERR_INIT};
+	static const struct cmd empty_cmd = {C_NAME_INIT, 1, 0, 0, C_IO_IN_INIT, C_IO_OUT_INIT, C_IO_ERR_INIT};
+	struct cmd new_cmd = {C_NAME_INIT, 1, 0, 0, C_IO_IN_INIT, C_IO_OUT_INIT, C_IO_ERR_INIT};
 
 	extern int yerrno;
 	int num_resizes = 0, pntr_resizes = 0;								//Keep track of the number of times the C_ARGS and C_ARGS_PNTR has been resized.
@@ -74,7 +74,9 @@ command :
 
 								  							strcpy(new_cmd.C_NAME, $1);
 
-								  							cmdtab[num_cmds++] = new_cmd;
+								  							cmdtab[num_cmds] = new_cmd;
+								  							cmdtab[num_cmds].C_ARGS_PNTR[0] = cmdtab[num_cmds].C_NAME;
+								  							num_cmds++;
 
 								  							new_cmd = empty_cmd;
 
@@ -104,8 +106,11 @@ command :
 															}
 
 								  							strcpy(new_cmd.C_NAME, $1);
+								  							new_cmd.C_ARGS_PNTR[0] = &new_cmd.C_NAME[0];
 
-								  							cmdtab[num_cmds++] = new_cmd;
+								  							cmdtab[num_cmds] = new_cmd;
+								  							cmdtab[num_cmds].C_ARGS_PNTR[0] = cmdtab[num_cmds].C_NAME;
+								  							num_cmds++;
 
 								  							reached_eoc = 1;
 
@@ -223,7 +228,7 @@ argument :
 			  ARG										{
 						  									checkAndAlloc();
 
-						  									if(new_cmd.C_NARGS >= 1) {
+						  									if(new_cmd.C_NARGS > 2) {
 							  									int i = 0;
 						  										char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS - 1];		//Pointer to the beginning of the last argument.
 
@@ -241,7 +246,7 @@ argument :
 			| EXPANDED_FILE								{
 															checkAndAlloc();
 
-						  									if(new_cmd.C_NARGS) {
+						  									if(new_cmd.C_NARGS > 2) {
 							  									int i = 0;
 						  										char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS - 1];		//Pointer to the beginning of the last argument.
 
@@ -261,7 +266,7 @@ argument :
 			| EXPANDED_USER								{
 															checkAndAlloc();
 
-						  									if(new_cmd.C_NARGS) {
+						  									if(new_cmd.C_NARGS > 2) {
 							  									int i = 0;
 						  										char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS - 1];		//Pointer to the beginning of the last argument.
 
@@ -285,7 +290,7 @@ argument :
 			| ENV_VAR									{
 															checkAndAlloc();
 
-						  									if(new_cmd.C_NARGS) {
+						  									if(new_cmd.C_NARGS > 2) {
 							  									int i = 0;
 						  										char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS - 1];		//Pointer to the beginning of the last argument.
 
@@ -390,7 +395,7 @@ void checkAndAlloc(void) {
 	if(!new_cmd.C_ARGS_PNTR) {
 		new_cmd.C_ARGS_PNTR = calloc(INIT_ARGS, sizeof(char **));
 
-		new_cmd.C_ARGS_PNTR[0] = &new_cmd.C_ARGS[0];
+		new_cmd.C_ARGS_PNTR[1] = &new_cmd.C_ARGS[0];
 	}
 }
 

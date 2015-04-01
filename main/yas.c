@@ -54,6 +54,8 @@ int main() {
 					case BUILTIN_CD:
 						if(!cd(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
 							//An error occurred.
+						} else {
+							newPath = 1;
 						}
 						break;
 					case BUILTIN_PRNTENV:
@@ -83,34 +85,34 @@ int main() {
 			} else {
 
 			}
-			// int i=0;
-			// for(; i < num_cmds; i++) {
-			// 	printf("Command %d name: %s\n", i, cmdtab[i].C_NAME);
-			// 	printf("\tNumber of arguments: %d\n", cmdtab[i].C_NARGS);
+			int i=0;
+			for(; i < num_cmds; i++) {
+				printf("Command %d name: %s\n", i, cmdtab[i].C_NAME);
+				printf("\tNumber of arguments: %d\n", cmdtab[i].C_NARGS);
 
-			// 	int j=0;
-			// 	for(; j < cmdtab[i].C_NARGS; j++) {
-			// 		printf("\t\tArg %d: %s\n", j, cmdtab[i].C_ARGS_PNTR[j]);
-			// 	}
+				int j=0;
+				for(; j < cmdtab[i].C_NARGS; j++) {
+					printf("\t\tArg %d: %s\n", j, cmdtab[i].C_ARGS_PNTR[j]);
+				}
 
-			// 	if(cmdtab[i].C_INPUT.field == C_IO_FILE) {
-			// 		printf("\tInput: %s\n", cmdtab[i].C_INPUT.io.file);
-			// 	} else {
-			// 		printf("\tInput: %d\n", cmdtab[i].C_INPUT.io.pointer);
-			// 	}
+				if(cmdtab[i].C_INPUT.field == C_IO_FILE) {
+					printf("\tInput:  %s\n", cmdtab[i].C_INPUT.io.file);
+				} else {
+					printf("\tInput:  %d\n", cmdtab[i].C_INPUT.io.pointer);
+				}
 
-			// 	if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
-			// 		printf("\tOutput: %s\n", cmdtab[i].C_OUTPUT.io.file);
-			// 	} else {
-			// 		printf("\tOutput: %d\n", cmdtab[i].C_OUTPUT.io.pointer);
-			// 	}
+				if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
+					printf("\tOutput: %s\n", cmdtab[i].C_OUTPUT.io.file);
+				} else {
+					printf("\tOutput: %d\n", cmdtab[i].C_OUTPUT.io.pointer);
+				}
 
-			// 	if(cmdtab[i].C_ERR.field == C_IO_FILE) {
-			// 		printf("\tError: %s\n", cmdtab[i].C_ERR.io.file);
-			// 	} else {
-			// 		printf("\tError: %d\n", cmdtab[i].C_ERR.io.pointer);
-			// 	}
-			// }
+				if(cmdtab[i].C_ERR.field == C_IO_FILE) {
+					printf("\tError:  %s\n", cmdtab[i].C_ERR.io.file);
+				} else {
+					printf("\tError:  %d\n", cmdtab[i].C_ERR.io.pointer);
+				}
+			}
 		}
 
 		reinit();
