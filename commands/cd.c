@@ -4,7 +4,7 @@
 #include <sys/types.h>
 #include <stdlib.h>
 
-int main(int argc, char *argv[]) {
+int cd(int argc, char *argv[]) {
 	int cd;
 
 	//if cd has no arguments go to the home dir else go to the directort in the argument

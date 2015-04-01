@@ -4,7 +4,7 @@
 #include <sys/types.h>
 #include <stdlib.h>
 
-int main(int argc, char *argv[]) {
+int printenv(int argc, char *argv[]) {
 	if(argc != 1) {
 		printf("Error: Invalid arguments. setenv does not accept arguments\n");	//displays error if more than two arg
 		exit(0);

@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <yas.h>
 
-int main(int argc, char *argv[]) {
+int alias(int argc, char *argv[]) {
 	struct yas_alias *next, *curr;		//gathers linked list structure
 
 	/*if only the alias command is typed iterate through
