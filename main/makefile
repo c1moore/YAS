@@ -13,9 +13,6 @@ lex.yy.c: lex.l
 y.tab.c: yas_grammar.y
 	yacc -d yas_grammar.y
 
-cmnds.0: $(COMMANDSFILES)
-	$(CC) $(COMMANDSFILES) -o cmnds.o $(CFLAGS)
-
 yas: $(COMMANDSFILES) $(YASFILES) $(INCLUDES) 
 	$(CC) $(YASFILES) $(COMMANDSFILES) -o yas $(CFLAGS)
 

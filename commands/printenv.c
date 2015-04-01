@@ -7,7 +7,7 @@
 int printenv(int argc, char *argv[]) {
 	if(argc != 1) {
 		printf("Error: Invalid arguments. setenv does not accept arguments\n");	//displays error if more than two arg
-		exit(0);
+		return(6);
 	}
 
 	extern char **environ;		//defines the environ variable
@@ -17,4 +17,5 @@ int printenv(int argc, char *argv[]) {
 	while(environ[i]) {
 		printf("%s\n",environ[i++]);
 	}
+	return(0)
 }

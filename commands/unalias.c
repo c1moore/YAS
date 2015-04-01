@@ -1,5 +1,6 @@
 #include <sys/types.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <yas.h>
 
 int unalias(int argc, char *argv[]) {
