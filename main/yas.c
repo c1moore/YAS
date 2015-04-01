@@ -62,7 +62,7 @@ int main() {
 						}
 						break;
 					case BUILTIN_SETENV:
-						if(!setenv(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+						if(!env(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
 							//An error occurred.
 						}
 						break;
@@ -72,7 +72,7 @@ int main() {
 						}
 						break;
 					case BUILTIN_UNENV:
-						if(!unsetenv(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+						if(!unenv(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
 							//An error occurred.
 						}
 						break;
