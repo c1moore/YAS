@@ -4,6 +4,7 @@
 	#include "yas_limits.h"
 	#include "yas_structures.h"
 	#include "yas_errors.h"
+	#include "yas_builtin.h"
 
 	/**
 	* Define the possible values for bg_mode.
