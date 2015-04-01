@@ -4,7 +4,7 @@
 #include <sys/types.h>
 #include <stdlib.h>
 
-int setenv(int argc, char *argv[]) {
+int env(int argc, char *argv[]) {
 	if(argc < 3 || argc > 4) {
 		printf("Error: Invalid arguments. setenv takes at most 3 arguments.\n");	//displays error if more than two arg
 		exit(0);

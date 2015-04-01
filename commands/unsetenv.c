@@ -4,7 +4,7 @@
 #include <sys/types.h>
 #include <stdlib.h>
 
-int unsetenv(int argc, char *argv[]) {
+int unenv(int argc, char *argv[]) {
 	if(argc != 2 || argc > 4) {
 		printf("Error: Invalid arguments. setenv requires 1 argument.\n");	//displays error if more than two arg
 		exit(0);
