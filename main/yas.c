@@ -288,6 +288,8 @@ void printPrompt() {
 		char *filepath = (char *) malloc((PATH_MAX + 1) * sizeof(char));
 		getcwd(filepath, PATH_MAX + 1);
 
+		fprintf(stderr, "%s\n", filepath);
+
 		int i = 0;
 		while(filepath[i] && homeDir[i]) {
 			if(filepath[i] ==  homeDir[i]) {
