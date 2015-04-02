@@ -213,7 +213,7 @@ void reinit(void) {
 	char *newHomeEnv = getenv("HOME");
 	char *newPathEnv = getenv("PATH");
 
-	if(strcmp(newHomeEnv, homeDir)) {
+	if(!strcmp(newHomeEnv, homeDir)) {
 		free(homeDir);
 		homeDir = newHomeEnv;
 
@@ -225,7 +225,7 @@ void reinit(void) {
 		newPath = 1;
 	}
 
-	if(strcmp(newPathEnv, path)) {
+	if(!strcmp(newPathEnv, path)) {
 		free(path);
 		path = newPathEnv;
 		parsePath();
