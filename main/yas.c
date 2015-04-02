@@ -18,6 +18,7 @@ int yerrno = 0;
 char *usrnm;						//Username
 char *homeDir;						//HOME environmental variable
 char *path;							//PATH environmental variable
+char **pathDirs = NULL;				//Pointer to the beginning of each NULL terminated directory in the path environmental variable
 char *machine;						//Machine name
 char newPath = 1;					//Specifies if the path has changed since the last prompt was displayed.
 char *cwd;							//Current filepath
@@ -27,10 +28,12 @@ struct sigaction sigintStopper;		//Signal handler for interruption signal.
 void init_yas(void);
 void reinit(void);
 int getCommands(void);
+void expandAliases(void);
+void printPrompt(void);
+void parsePath(void);
+int checkExecutability(char *, char *);
 void clean_console(void);
 void handleSignalInterrupt(int);
-void printPrompt(void);
-void expandAliases(void);
 
 int main() {
 	init_yas();
@@ -83,8 +86,22 @@ int main() {
 						break;
 				}
 			} else {
+				//Create a table to store the full path to the executable files (commands).
+				char *commandPaths[num_cmds];
 
+				//Check if all the commands are executable.
+				int i = 0;
+				for(; i < num_cmds; i++) {
+					if(checkExecutability(commandPaths[i], cmdtab[i].C_NAME))
+						break;
+				}
+
+				if(i < num_cmds) {
+					fprintf(stderr, "Error: %s is not a recognized command.\n", cmdtab[i].C_NAME);
+					break;
+				}
 			}
+
 			int i=0;
 			for(; i < num_cmds; i++) {
 				printf("Command %d name: %s\n", i, cmdtab[i].C_NAME);
@@ -167,13 +184,16 @@ void init_yas(void) {
 	path = getenv("PATH");
 	homeDir = getenv("HOME");
 
+	parsePath();
+
 	//Set the length of the home environmental variable.
 	while(homeDir[homeDirLength])
 		homeDirLength++;
 
 	//Change current working directory to the home directory.  If that fails, simply use the current directory.
 	if(!chdir(homeDir)) {
-		cwd = homeDir;
+		cwd = (char *) malloc((homeDirLength + 1) * sizeof(char));
+		strcpy(cwd, homeDir);
 	} else {
 		getcwd(cwd, 0);
 	}
@@ -208,6 +228,7 @@ void reinit(void) {
 	if(strcmp(newPathEnv, path)) {
 		free(path);
 		path = newPathEnv;
+		parsePath();
 	}
 
 	//Check to see if the user has changed and update usrnm if so.
@@ -288,8 +309,6 @@ void printPrompt() {
 		char *filepath = (char *) malloc((PATH_MAX + 1) * sizeof(char));
 		getcwd(filepath, PATH_MAX + 1);
 
-		fprintf(stderr, "%s\n", filepath);
-
 		int i = 0;
 		while(filepath[i] && homeDir[i]) {
 			if(filepath[i] ==  homeDir[i]) {
@@ -324,6 +343,110 @@ void printPrompt() {
 
 	fprintf(stdout, "%s@%s:%s> ", usrnm, machine, cwd);
 	fflush(stdout);
+}
+
+/**
+* Comb over the PATH environmental variable and change each ':' into '\0' and save a pointer
+* to the beginning of each path.  Since other Linux system commands do not appear to do this
+* theirself, this will make searching system paths for executable files easier.
+*/
+void parsePath() {
+	int i = 1, j = 0;
+
+	//Find the number of directories.
+	while(path[j]) {
+		if(path[j] == ':')
+			i++;
+
+		j++;
+	}
+
+	//Allocate space to pathDirs.
+	free(pathDirs);
+	pathDirs = (char **) malloc((i + 1) * sizeof(char *));
+	pathDirs[0] = path;
+	pathDirs[i] = 0;
+
+	//Replace ':' with NULL and save pointer to beginning of directory.
+	for(i = 1, j = 0; path[j]; j++) {
+		if(path[j] == ':') {
+			path[j] = 0;
+			pathDirs[i] = &path[j+1];
+			i++;
+		}
+	}
+}
+
+/**
+* Check if a given command is an executable file by checking the directories specified in the
+* PATH environmental variable or the path specified by the user.  Only the directories
+* specified by the PATH environmental variable will be checked if the command does not contain
+* a '/'.  If the file is found and executable, return 0; otherwise, return 1.  If an executable
+* file has been found, return the filepath in dest; otherwise, set it equal to NULL.
+*/
+int checkExecutability(char *dest, char *command) {
+	char searchNonPath = 0;		//Search directories not contained in the path?
+
+	int i = 0;
+	while(command[i]) {
+		if(command[i] == '/') {
+			searchNonPath = 1;
+		}
+		i++;
+	}
+
+	//Search files not in PATH first, if applicable
+	if(searchNonPath) {
+		if(access(command, X_OK) == 0) {
+			dest = command;
+			return 0;
+		}
+	}
+
+	for(i = 0; pathDirs[i]; i++) {
+		//Determine the length of the full path.
+		int j = 0, pathLength = 0;
+		while(pathDirs[i][j]) {
+			j++;
+		}
+
+		pathLength = j;
+		
+		j = 0;
+		while(command[j]) {
+			j++;
+		}
+
+		pathLength += (j + 1);
+
+		if(command[0] == '/') {
+			char *temp = (char *) malloc(pathLength * sizeof(char));
+			strcpy(temp, pathDirs[i]);
+			strcat(temp, command);
+
+			if(access(temp, X_OK) == 0) {
+				dest = temp;
+				return 0;
+			}
+
+			free(temp);
+		} else {
+			//We need to add a '/' between pathDirs[i] and command.
+			char *temp = (char *) malloc((pathLength + 1) * sizeof(char));
+			strcpy(temp, pathDirs[i]);
+			strcat(temp, "/");
+			strcat(temp, command);
+
+			if(access(temp, X_OK) == 0) {
+				dest = temp;
+				return 0;
+			}
+
+			free(temp);
+		}
+	}
+
+	return 1;
 }
 
 /**
