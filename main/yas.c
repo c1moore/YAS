@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
@@ -9,6 +10,9 @@
 #include "yas.h"
 #include "y.tab.h"
 
+struct pfd {
+	int fda[2];
+};
 
 char bg_mode = BG_MODE_FALSE;
 char builtin = BUILTIN_FALSE;
@@ -31,7 +35,7 @@ int getCommands(void);
 void expandAliases(void);
 void printPrompt(void);
 void parsePath(void);
-int checkExecutability(char *, char *);
+int checkExecutability(char **, char *);
 void clean_console(void);
 void handleSignalInterrupt(int);
 
@@ -87,18 +91,200 @@ int main() {
 				}
 			} else {
 				//Create a table to store the full path to the executable files (commands).
-				char *commandPaths[num_cmds];
+				char **commandPaths;
+				commandPaths = (char **) malloc(num_cmds * sizeof(char *));
 
 				//Check if all the commands are executable.
 				int i = 0;
 				for(; i < num_cmds; i++) {
-					if(checkExecutability(commandPaths[i], cmdtab[i].C_NAME))
+					if(checkExecutability(&commandPaths[i], cmdtab[i].C_NAME)) {
 						break;
+					}
 				}
 
 				if(i < num_cmds) {
-					fprintf(stderr, "Error: %s is not a recognized command.\n", cmdtab[i].C_NAME);
+					fprintf(stderr, "Error: %s is not a recognized internal or external command.\n", cmdtab[i].C_NAME);
+					reinit();
 					break;
+				}
+
+				int child_pids[num_cmds];			//Hold the PIDs for the child processes created.
+				struct pfd pfds[num_cmds - 1];		//Pipe file descriptors
+
+				for(i = 0; i < num_cmds; i++) {
+					//First check I/O redirection points to existing files with proper permissions.
+					if(cmdtab[i].C_INPUT.field == C_IO_FILE) {
+						if(access(cmdtab[i].C_INPUT.io.file, R_OK)) {
+							fprintf(stderr, "I/O Error: Cannot read from file: %s.\n", cmdtab[i].C_INPUT.io.file);
+							break;
+						}
+					}
+					if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
+						if(access(cmdtab[i].C_OUTPUT.io.file, W_OK)) {
+							fprintf(stderr, "I/O Error: Cannot write to file: %s.\n", cmdtab[i].C_OUTPUT.io.file);
+							break;
+						}
+					}
+					if(cmdtab[i].C_ERR.field == C_IO_FILE) {
+						if(access(cmdtab[i].C_ERR.io.file, W_OK)) {
+							fprintf(stderr, "I/O Error: Cannot write to error file: %s.\n", cmdtab[i].C_ERR.io.file);
+							break;
+						}
+					}
+
+					if(i == 0) {
+						//First command
+
+						if(num_cmds == 1) {
+							//No need to create pipes.
+							if((child_pids[i] = fork()) == -1) {
+								//Error occurred forking process
+								fprintf(stderr, "Error: Could not fork shell.\n");
+
+								break;
+							}
+
+							if(child_pids[i] == 0) {
+								//In the child process
+
+								//Check I/O redirection
+								// if(cmdtab[i].C_INPUT.field == C_IO_FILE) {
+								// 	close(0);				//Close standard input
+								// 	dup(pfds[i].fda[0]);		//Set 
+								// }
+
+								//Execute the command and exit
+								execv(commandPaths[i], cmdtab[i].C_ARGS_PNTR);
+								exit(0);
+							}
+						} else {
+							if(!pipe(pfds[i].fda)) {
+								//Error occurred creating pipe.
+								fprintf(stderr, "Error: Piping failed.\n");
+								break;
+							}
+
+							if((child_pids[i] = fork()) == -1) {
+								//Error occurred forking process.
+								fprintf(stderr, "Error: Could not fork shell.\n");
+
+								//Close I/O created by pipe()
+								close(pfds[i].fda[0]);
+								close(pfds[i].fda[1]);
+
+								break;
+							}
+
+							if(child_pids[i] == 0) {
+								//In the child process
+								close(1);				//Close standard output
+								dup(pfds[i].fda[1]);		//Set end of pipe as stdout
+
+								//Close unneeded I/O
+								close(pfds[i].fda[0]);
+								close(pfds[i].fda[1]);
+
+								//Execute the command
+								execv(commandPaths[i], cmdtab[i].C_ARGS_PNTR);
+								exit(0);
+							}
+						}
+					} else if(i >= (num_cmds - 1)) {
+						//Last command iff there is more than 1 command
+						if((child_pids[i] = fork()) == -1) {
+							//Error occurred forking process
+							fprintf(stderr, "Error: Could not fork shell.\n");
+
+							//Close I/O created from last pipe
+							close(pfds[i-1].fda[0]);
+							close(pfds[i-1].fda[1]);
+
+							break;
+						}
+
+						if(child_pids[i] == 0) {
+							//In the child process
+							close(0);				//Close standard input
+							dup(pfds[i-1].fda[0]);	//Set beginning of pipe as stdin
+
+							//Close unneeded I/O
+							close(pfds[i-1].fda[0]);
+							close(pfds[i-1].fda[1]);
+
+							//Execute the command
+							execv(commandPaths[i], cmdtab[i].C_ARGS_PNTR);
+							exit(0);
+						}
+					} else {
+						//Commands in middle of pipe line
+						if(!pipe(pfds[i].fda)) {
+							//Error occurred creating pipe.
+							fprintf(stderr, "Error: Piping failed.\n");
+
+							//Close all I/O created by pipe up to this point
+							int j = 0;
+							for(; j < i; j++) {
+								close(pfds[j].fda[0]);
+								close(pfds[j].fda[1]);
+							}
+
+							break;
+						}
+
+						if((child_pids[i] = fork()) == -1) {
+							//Error occurred forking process
+							fprintf(stderr, "Error: Could not fork shell.\n");
+
+							//Close all I/O created by pipe up to this point
+							int j = 0;
+							for(; j < i; j++) {
+								close(pfds[j].fda[0]);
+								close(pfds[j].fda[1]);
+							}
+
+							break;
+						}
+
+						if(child_pids[i] == 0) {
+							//In the child process
+
+							//Setup stdout for the process.
+							close(1);
+							dup(pfds[i].fda[1]);
+
+							//Setup stdin for the process
+							close(0);
+							dup(pfds[i-1].fda[0]);
+
+							//Close unneeded I/O
+							close(pfds[i].fda[0]);
+							close(pfds[i].fda[1]);
+							close(pfds[i-1].fda[0]);
+							close(pfds[i-1].fda[1]);
+
+							//Execute the command
+							execv(commandPaths[i], cmdtab[i].C_ARGS_PNTR);
+							exit(0);
+						}
+					}
+				}
+
+				/**
+				* The pipeline has been fully created.  If it was a success and the user specifed
+				* to run the process in the foreground, wait on all the child processes to finish;
+				* otherwise, continue executing.
+				*/
+				if(i == num_cmds && bg_mode == BG_MODE_FALSE) {
+					int j = 0;
+					for(; j < (num_cmds - 1); j++) {
+						close(pfds[j].fda[0]);
+						close(pfds[j].fda[1]);
+					}
+
+					//Wait for all children to DIE.
+					for(j = 0; j < num_cmds; j++) {
+						wait((int *) 0);
+					}
 				}
 			}
 
@@ -180,9 +366,11 @@ void init_yas(void) {
 	gethostname(hostName, HOST_NAME_MAX);
 	machine = hostName;
 
-	//Get the HOME and PATH environmental variables.
-	path = getenv("PATH");
-	homeDir = getenv("HOME");
+	//Get the HOME and PATH environmental variables.  Do not just save pointer to location in environmental variables so we can determine if they have changed.
+	path = (char *) malloc((strlen(getenv("PATH")) + 1) * sizeof(char));
+	homeDir = (char *) malloc((strlen(getenv("HOME")) + 1) * sizeof(char));
+	strcpy(path, getenv("PATH"));
+	strcpy(homeDir, getenv("HOME"));
 
 	parsePath();
 
@@ -213,21 +401,24 @@ void reinit(void) {
 	char *newHomeEnv = getenv("HOME");
 	char *newPathEnv = getenv("PATH");
 
-	if(!strcmp(newHomeEnv, homeDir)) {
+	if(strcmp(newHomeEnv, homeDir)) {
 		free(homeDir);
-		homeDir = newHomeEnv;
+		homeDir = (char *) malloc((strlen(newHomeEnv) + 1) * sizeof(char));
+		strcpy(homeDir, newHomeEnv);
 
 		//Set the length of the home environmental variable.
 		homeDirLength = 0;
 		while(homeDir[homeDirLength])
 			homeDirLength++;
 
+		//A tilde may or may not be required now that the home directory has changed.
 		newPath = 1;
 	}
 
-	if(!strcmp(newPathEnv, path)) {
+	if(strcmp(newPathEnv, path)) {
 		free(path);
-		path = newPathEnv;
+		path = (char *) malloc((strlen(newPathEnv) + 1) * sizeof(char));
+		strcpy(path, newPathEnv);
 		parsePath();
 	}
 
@@ -384,7 +575,7 @@ void parsePath() {
 * a '/'.  If the file is found and executable, return 0; otherwise, return 1.  If an executable
 * file has been found, return the filepath in dest; otherwise, set it equal to NULL.
 */
-int checkExecutability(char *dest, char *command) {
+int checkExecutability(char **dest, char *command) {
 	char searchNonPath = 0;		//Search directories not contained in the path?
 
 	int i = 0;
@@ -398,7 +589,7 @@ int checkExecutability(char *dest, char *command) {
 	//Search files not in PATH first, if applicable
 	if(searchNonPath) {
 		if(access(command, X_OK) == 0) {
-			dest = command;
+			*dest = command;
 			return 0;
 		}
 	}
@@ -425,7 +616,8 @@ int checkExecutability(char *dest, char *command) {
 			strcat(temp, command);
 
 			if(access(temp, X_OK) == 0) {
-				dest = temp;
+				*dest = (char *) malloc((pathLength + 1) * sizeof(char));
+				strcpy(*dest, temp);
 				return 0;
 			}
 
@@ -438,7 +630,8 @@ int checkExecutability(char *dest, char *command) {
 			strcat(temp, command);
 
 			if(access(temp, X_OK) == 0) {
-				dest = temp;
+				*dest = (char *) malloc((pathLength + 1) * sizeof(char));
+				strcpy(*dest, temp);
 				return 0;
 			}
 
