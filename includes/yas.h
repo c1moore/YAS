@@ -38,9 +38,6 @@
 	#define YAS_STDOUT		-2
 	#define YAS_STDERR		-3
 
-	#define C_IO_FILE		1
-	#define C_IO_POINTER	2
-
 	/**
 	* Specifies whether this command should run in the background.  If its value is
 	* BG_MODE_TRUE, this command should run in the background.  If its value is

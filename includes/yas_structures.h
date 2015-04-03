@@ -13,8 +13,21 @@
 
 	struct C_IO_TYPE {
 		union C_IO_UNION io;
-		char field;
+		char field;				//Specify which field of the union is used.
+		char concat;			//Concatenate I/O in file specified?  Ignored when field is not C_IO_FILE.
 	};
+
+	/**
+	* Define possible values for C_IO_TYPE.field.
+	*/
+	#define C_IO_FILE		1
+	#define C_IO_POINTER	2
+
+	/**
+	* Define possible values for C_IO_TYPE.concat
+	*/
+	#define C_IO_OW			0	//Overwrite contents of file
+	#define C_IO_CONCAT		1	//Append result to end of file
 
 	/**
 	* Entries to cmdtab, each entry represents a command.
