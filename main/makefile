@@ -20,4 +20,4 @@ yas: $(COMMANDSFILES) $(YASFILES) $(INCLUDES)
 	$(CC) $(YASFILES) $(COMMANDSFILES) -o yas $(CFLAGS)
 
 clean:
-	rm -f lex.yy.c y.tab.c yas.o y.tab.h
+	rm -f lex.yy.c y.tab.c yas.o y.tab.h yas yas_grammar.tab.c yas_grammar.tab.h ../commands/alias ../commands/cd ../commands/printenv ../commands/setenv ../commands/unalias ../commands/unsetenv
