@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <fcntl.h>
 #include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
@@ -110,6 +111,7 @@ int main() {
 
 				int child_pids[num_cmds];			//Hold the PIDs for the child processes created.
 				struct pfd pfds[num_cmds - 1];		//Pipe file descriptors
+				int iofiles[3];						//File descriptors for I/O redirection
 
 				for(i = 0; i < num_cmds; i++) {
 					//First check I/O redirection points to existing files with proper permissions.
@@ -118,25 +120,38 @@ int main() {
 							fprintf(stderr, "I/O Error: Cannot read from file: %s.\n", cmdtab[i].C_INPUT.io.file);
 							break;
 						}
+
+						iofiles[0] = open(cmdtab[i].C_INPUT.io.file, O_RDONLY);
 					}
 					if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
-						if(access(cmdtab[i].C_OUTPUT.io.file, W_OK)) {
+						//If the file doesn't exist or if the file should be overwritten use creat.
+						if(access(cmdtab[i].C_OUTPUT.io.file, F_OK) || cmdtab[i].C_INPUT.concat == C_IO_OW) {
+							iofiles[1] = creat(cmdtab[i].C_OUTPUT.io.file, 0000666);
+						} else if(access(cmdtab[i].C_OUTPUT.io.file, W_OK)) {
 							fprintf(stderr, "I/O Error: Cannot write to file: %s.\n", cmdtab[i].C_OUTPUT.io.file);
 							break;
+						} else {
+							//The file exists and should be appended to.
+							iofiles[1] = open(cmdtab[i].C_OUTPUT.io.file, O_WRONLY | O_APPEND);
 						}
 					}
 					if(cmdtab[i].C_ERR.field == C_IO_FILE) {
-						if(access(cmdtab[i].C_ERR.io.file, W_OK)) {
+						//If the file doesn't exist or if the file should be overwritten use creat.
+						if(access(cmdtab[i].C_ERR.io.file, F_OK) || cmdtab[i].C_INPUT.concat == C_IO_OW) {
+							iofiles[1] = creat(cmdtab[i].C_ERR.io.file, 0000666);
+						}else if(access(cmdtab[i].C_ERR.io.file, W_OK)) {
 							fprintf(stderr, "I/O Error: Cannot write to error file: %s.\n", cmdtab[i].C_ERR.io.file);
 							break;
+						} else {
+							//The file exists and should be appended to.
+							iofiles[1] = open(cmdtab[i].C_ERR.io.file, O_WRONLY | O_APPEND);
 						}
 					}
 
+					//First command
 					if(i == 0) {
-						//First command
-
+						//No need to create pipes.
 						if(num_cmds == 1) {
-							//No need to create pipes.
 							if((child_pids[i] = fork()) == -1) {
 								//Error occurred forking process
 								fprintf(stderr, "Error: Could not fork shell.\n");
@@ -144,20 +159,44 @@ int main() {
 								break;
 							}
 
+							//In the child process
 							if(child_pids[i] == 0) {
-								//In the child process
-
 								//Check I/O redirection
-								// if(cmdtab[i].C_INPUT.field == C_IO_FILE) {
-								// 	close(0);				//Close standard input
-								// 	dup(pfds[i].fda[0]);		//Set 
-								// }
+								if(cmdtab[i].C_INPUT.field == C_IO_FILE) {
+									close(0);					//Close standard input
+									dup(iofiles[0]);			//Set stdin
+									close(iofiles[0]);			//Close unneed I/O
+								}
+								if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
+									close(1);					//Close standard output
+									dup(iofiles[1]);			//Set stdout
+									close(iofiles[1]);			//Close unneed I/O
+								}
+								if(cmdtab[i].C_ERR.field == C_IO_FILE) {
+									close(2);					//Close standard error
+									dup(iofiles[2]);			//Set stderr
+									close(iofiles[2]);			//Close unneed I/O
+								}
 
 								//Execute the command and exit
 								execv(commandPaths[i], cmdtab[i].C_ARGS_PNTR);
 								exit(0);
 							}
+
+							//Close unneeded I/O
+							if(cmdtab[i].C_INPUT.field == C_IO_FILE) {
+								close(iofiles[0]);
+							}
+							if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
+								close(iofiles[1]);
+							}
+							if(cmdtab[i].C_ERR.field == C_IO_FILE) {
+								close(iofiles[2]);
+							}
+
 						} else {
+							//This is the first command in a pipe
+
 							if(pipe(pfds[i].fda)) {
 								//Error occurred creating pipe.
 								fprintf(stderr, "Error: Piping failed.\n");
@@ -180,6 +219,18 @@ int main() {
 								close(1);					//Close standard output
 								dup(pfds[i].fda[1]);		//Set end of pipe as stdout
 
+								//Check I/O redirection
+								if(cmdtab[i].C_INPUT.field == C_IO_FILE) {
+									close(0);					//Close standard input
+									dup(iofiles[0]);			//Set stdin
+									close(iofiles[0]);			//Close unneed I/O
+								}
+								if(cmdtab[i].C_ERR.field == C_IO_FILE) {
+									close(2);					//Close standard error
+									dup(iofiles[2]);			//Set stderr
+									close(iofiles[2]);			//Close unneed I/O
+								}
+
 								//Close unneeded I/O
 								close(pfds[i].fda[0]);
 								close(pfds[i].fda[1]);
@@ -187,6 +238,14 @@ int main() {
 								//Execute the command
 								execv(commandPaths[i], cmdtab[i].C_ARGS_PNTR);
 								exit(0);
+							}
+
+							//Close unneeded I/O
+							if(cmdtab[i].C_INPUT.field == C_IO_FILE) {
+								close(iofiles[0]);
+							}
+							if(cmdtab[i].C_ERR.field == C_IO_FILE) {
+								close(iofiles[2]);
 							}
 						}
 					} else if(i >= (num_cmds - 1)) {
@@ -206,6 +265,18 @@ int main() {
 							//In the child process
 							close(0);				//Close standard input
 							dup(pfds[i-1].fda[0]);	//Set beginning of pipe as stdin
+								
+							//Check I/O redirection
+							if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
+								close(1);					//Close standard output
+								dup(iofiles[1]);			//Set stdout
+								close(iofiles[1]);			//Close unneed I/O
+							}
+							if(cmdtab[i].C_ERR.field == C_IO_FILE) {
+								close(2);					//Close standard error
+								dup(iofiles[2]);			//Set stderr
+								close(iofiles[2]);			//Close unneed I/O
+							}
 
 							//Close unneeded I/O
 							close(pfds[i-1].fda[0]);
@@ -214,6 +285,14 @@ int main() {
 							//Execute the command
 							execv(commandPaths[i], cmdtab[i].C_ARGS_PNTR);
 							exit(0);
+						}
+
+						//Close unneeded I/O
+						if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
+							close(iofiles[1]);
+						}
+						if(cmdtab[i].C_ERR.field == C_IO_FILE) {
+							close(iofiles[2]);
 						}
 					} else {
 						//Commands in middle of pipe line
@@ -256,6 +335,13 @@ int main() {
 							close(0);
 							dup(pfds[i-1].fda[0]);
 
+							//Check I/O redirection
+							if(cmdtab[i].C_ERR.field == C_IO_FILE) {
+								close(2);					//Close standard error
+								dup(iofiles[2]);			//Set stderr
+								close(iofiles[2]);			//Close unneed I/O
+							}
+
 							//Close unneeded I/O
 							close(pfds[i].fda[0]);
 							close(pfds[i].fda[1]);
@@ -265,6 +351,11 @@ int main() {
 							//Execute the command
 							execv(commandPaths[i], cmdtab[i].C_ARGS_PNTR);
 							exit(0);
+						}
+
+						//Close unneeded I/O
+						if(cmdtab[i].C_ERR.field == C_IO_FILE) {
+							close(iofiles[2]);
 						}
 					}
 				}
@@ -484,7 +575,7 @@ int getCommands() {
 *		- Tildes should be expanded, too
 */
 void expandAliases(void) {
-	
+	//To accomplish this, simply make YACC write to a pointer, not directly to the cmdtab.  When expanding aliases, make this pointer point to a new table of the same type as cmdtab.  Whenever reinit (and init) is run, reset the pointer to cmdtab.  When YACC returns, assumming no more aliases are present, check the total number of commands.  If the number of commands exceeds CMDS_MAX, print an error; otherwise, add the new commands to the row starting at the row that contained the command that required expansion.
 }
 
 /**
