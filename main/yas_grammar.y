@@ -248,7 +248,7 @@ argument :
 
 						  									if(new_cmd.C_NARGS == 1) {
 																new_cmd.C_ARGS_PNTR[1] = &new_cmd.C_ARGS[0];
-						  									} else if(new_cmd.C_NARGS > 2) {
+						  									} else if(new_cmd.C_NARGS > 1) {
 							  									int i = 0;
 						  										char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS - 1];		//Pointer to the beginning of the last argument.
 
@@ -268,7 +268,7 @@ argument :
 
 						  									if(new_cmd.C_NARGS == 1) {
 																new_cmd.C_ARGS_PNTR[1] = &new_cmd.C_ARGS[0];
-						  									} else if(new_cmd.C_NARGS > 2) {
+						  									} else if(new_cmd.C_NARGS > 1) {
 							  									int i = 0;
 						  										char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS - 1];		//Pointer to the beginning of the last argument.
 
@@ -290,7 +290,7 @@ argument :
 
 						  									if(new_cmd.C_NARGS == 1) {
 																new_cmd.C_ARGS_PNTR[1] = &new_cmd.C_ARGS[0];
-						  									} else if(new_cmd.C_NARGS > 2) {
+						  									} else if(new_cmd.C_NARGS > 1) {
 							  									int i = 0;
 						  										char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS - 1];		//Pointer to the beginning of the last argument.
 
@@ -316,7 +316,7 @@ argument :
 
 						  									if(new_cmd.C_NARGS == 1) {
 																new_cmd.C_ARGS_PNTR[1] = &new_cmd.C_ARGS[0];
-						  									} else if(new_cmd.C_NARGS > 2) {
+						  									} else if(new_cmd.C_NARGS > 1) {
 							  									int i = 0;
 						  										char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS - 1];		//Pointer to the beginning of the last argument.
 
@@ -551,6 +551,20 @@ void addArg(char *dest, char *src) {
 
 		i++;
 	}
+
+	//Now add a NULL at the end.
+	int distance = &dest[i] - new_cmd.C_ARGS;
+	char *old = new_cmd.C_ARGS;
+
+	if(distance >= (ARG_LENGTH * RESIZE_RATIO * (num_resizes + 1))) {
+		reallocArgs();
+
+		if(old != new_cmd.C_ARGS) {
+			dest = new_cmd.C_ARGS + distance;
+		}
+	}
+
+	dest[i] = 0;
 
 	new_cmd.C_NARGS++;
 }
