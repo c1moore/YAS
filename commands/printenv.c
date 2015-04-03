@@ -17,5 +17,5 @@ int printenv(int argc, char *argv[]) {
 	while(environ[i]) {
 		printf("%s\n",environ[i++]);
 	}
-	return(0)
+	return(0);
 }

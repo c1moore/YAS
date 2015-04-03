@@ -15,13 +15,13 @@ int alias(int argc, char *argv[]) {
 		curr = alias_head;	
 		if(!num_aliases) {
 			printf("No aliases set\n");
-			exit(0);
+			return(0);
 		}			
 		while (curr != NULL) {
 			printf("%s = %s\n",curr->alias,curr->cmd);
 			curr = curr->next;
 		}
-		exit(0);
+		return(0);
 	}
 
 	/*if alias alias-name cmd is typed this goes throught the 
@@ -36,7 +36,7 @@ int alias(int argc, char *argv[]) {
 		//stops aliases being set to themselves
 		if(argv[1] == argv[2]) {
 			printf("You can't do that");
-			exit(0);
+			return(ARG_ERR);
 		}
 
 		curr = alias_head;
@@ -50,14 +50,14 @@ int alias(int argc, char *argv[]) {
 		curr->next->next = NULL;
 
 		printf("%s = %s\n",curr->alias,curr->cmd);
-		exit(0);
+		return(0);
 	}
 	
 	/*if anyother form of the alias command is typed, print out an error
 	and a message showing the correct usage of alias*/ 
 	else {
 		printf("Incorrect usage\n Usage: alias [alias name] [alias cmd]");
-		exit(0);
+		return(ARG_ERR);
 	}
 }
 
