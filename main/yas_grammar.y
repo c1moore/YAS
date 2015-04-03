@@ -168,6 +168,7 @@ io_redirect :
 															
 															strcpy(new_cmd.C_INPUT.io.file, $2);
 															new_cmd.C_INPUT.field = C_IO_FILE;
+															new_cmd.C_INPUT.concat = C_IO_OW;
 
 															io_in_set = 1;
 														}
@@ -183,10 +184,26 @@ io_redirect :
 
 															strcpy(new_cmd.C_OUTPUT.io.file, $2);
 															new_cmd.C_OUTPUT.field = C_IO_FILE;
+															new_cmd.C_INPUT.concat = C_IO_OW;
 
 															io_out_set = 1;
 														}
-			| OUT_RA io_argument
+			| OUT_RA io_argument						{
+			  												if(io_out_set == 1) {
+			  													yyerror("I/O Error: Output can only be redirected once per command.");
+			  													yerrno = IO_ERR;
+
+			  													YYABORT;
+			  												}
+
+															new_cmd.C_OUTPUT.io.file = malloc(strlen($2));
+
+															strcpy(new_cmd.C_OUTPUT.io.file, $2);
+															new_cmd.C_OUTPUT.field = C_IO_FILE;
+															new_cmd.C_INPUT.concat = C_IO_CONCAT;
+
+															io_out_set = 1;
+														}
 			| ERR_2_FILE io_argument					{
 			  												if(io_err_set == 1) {
 			  													yyerror("I/O Error: Error can only be redirected once per command.");
@@ -199,6 +216,7 @@ io_redirect :
 
 															strcpy(new_cmd.C_ERR.io.file, $2);
 															new_cmd.C_ERR.field = C_IO_FILE;
+															new_cmd.C_INPUT.concat = C_IO_OW;
 
 															io_err_set = 1;
 														}

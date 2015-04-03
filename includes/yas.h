@@ -66,9 +66,9 @@
 	extern int yerrno;
 
 	#define C_NAME_INIT		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	#define C_IO_IN_INIT	{YAS_STDIN, 0}
-	#define C_IO_OUT_INIT	{YAS_STDOUT, 0}
-	#define C_IO_ERR_INIT	{YAS_STDERR, 0}
+	#define C_IO_IN_INIT	{YAS_STDIN, C_IO_POINTER, C_IO_NA}
+	#define C_IO_OUT_INIT	{YAS_STDOUT, C_IO_POINTER, C_IO_NA}
+	#define C_IO_ERR_INIT	{YAS_STDERR, C_IO_POINTER, C_IO_NA}
 
 	#define YAS_BANNER		"Welcome to YAS!\n"
 #endif

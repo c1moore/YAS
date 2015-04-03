@@ -26,8 +26,9 @@
 	/**
 	* Define possible values for C_IO_TYPE.concat
 	*/
-	#define C_IO_OW			0	//Overwrite contents of file
-	#define C_IO_CONCAT		1	//Append result to end of file
+	#define C_IO_OW			0			//Overwrite contents of file
+	#define C_IO_NA 		C_IO_OW		//I/O redirection not applicable
+	#define C_IO_CONCAT		1			//Append result to end of file
 
 	/**
 	* Entries to cmdtab, each entry represents a command.
