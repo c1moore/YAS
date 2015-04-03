@@ -51,7 +51,7 @@ int main() {
 			if(builtin != BUILTIN_FALSE) {
 				switch(builtin) {
 					case BUILTIN_ALIAS:
-						if(!alias(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+						if(alias(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
 							//An error occurred.
 						}
 						break;
@@ -59,29 +59,29 @@ int main() {
 						fprintf(stdout, "Good-bye!\n");
 						exit(0);
 					case BUILTIN_CD:
-						if(!cd(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+						if(cd(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
 							//An error occurred.
 						} else {
 							newPath = 1;
 						}
 						break;
 					case BUILTIN_PRNTENV:
-						if(!printenv(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+						if(printenv(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
 							//An error occurred.
 						}
 						break;
 					case BUILTIN_SETENV:
-						if(!env(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+						if(env(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
 							//An error occurred.
 						}
 						break;
 					case BUILTIN_UNALIAS:
-						if(!unalias(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+						if(unalias(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
 							//An error occurred.
 						}
 						break;
 					case BUILTIN_UNENV:
-						if(!unenv(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+						if(unenv(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
 							//An error occurred.
 						}
 						break;
