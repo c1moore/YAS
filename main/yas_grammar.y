@@ -228,7 +228,9 @@ argument :
 			  ARG										{
 						  									checkAndAlloc();
 
-						  									if(new_cmd.C_NARGS > 2) {
+						  									if(new_cmd.C_NARGS == 1) {
+																new_cmd.C_ARGS_PNTR[1] = &new_cmd.C_ARGS[0];
+						  									} else if(new_cmd.C_NARGS > 2) {
 							  									int i = 0;
 						  										char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS - 1];		//Pointer to the beginning of the last argument.
 
@@ -246,7 +248,9 @@ argument :
 			| EXPANDED_FILE								{
 															checkAndAlloc();
 
-						  									if(new_cmd.C_NARGS > 2) {
+						  									if(new_cmd.C_NARGS == 1) {
+																new_cmd.C_ARGS_PNTR[1] = &new_cmd.C_ARGS[0];
+						  									} else if(new_cmd.C_NARGS > 2) {
 							  									int i = 0;
 						  										char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS - 1];		//Pointer to the beginning of the last argument.
 
@@ -266,7 +270,9 @@ argument :
 			| EXPANDED_USER								{
 															checkAndAlloc();
 
-						  									if(new_cmd.C_NARGS > 2) {
+						  									if(new_cmd.C_NARGS == 1) {
+																new_cmd.C_ARGS_PNTR[1] = &new_cmd.C_ARGS[0];
+						  									} else if(new_cmd.C_NARGS > 2) {
 							  									int i = 0;
 						  										char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS - 1];		//Pointer to the beginning of the last argument.
 
@@ -290,7 +296,9 @@ argument :
 			| ENV_VAR									{
 															checkAndAlloc();
 
-						  									if(new_cmd.C_NARGS > 2) {
+						  									if(new_cmd.C_NARGS == 1) {
+																new_cmd.C_ARGS_PNTR[1] = &new_cmd.C_ARGS[0];
+						  									} else if(new_cmd.C_NARGS > 2) {
 							  									int i = 0;
 						  										char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS - 1];		//Pointer to the beginning of the last argument.
 
@@ -394,8 +402,6 @@ void checkAndAlloc(void) {
 	
 	if(!new_cmd.C_ARGS_PNTR) {
 		new_cmd.C_ARGS_PNTR = calloc(INIT_ARGS, sizeof(char **));
-
-		new_cmd.C_ARGS_PNTR[1] = &new_cmd.C_ARGS[0];
 	}
 }
 
