@@ -5,6 +5,7 @@
 	#include "y.tab.h"
 	#include "yas.h"
 
+	int expandAliases(char *);
 	void removeEscapes(char *, int);
 	void removeEscapedQuotes(char *, int);
 
@@ -65,14 +66,18 @@
 																	}
 
 ^[ \t]*("./")?[a-zA-Z0-9./]+										{
-																		yylval.str = strdup(yytext);
-																		return CMD;
+																		if(!expandAliases(yytext)) {
+																			yylval.str = strdup(yytext);
+																			return CMD;
+																		}
 																	}
 
 <PS>("./")?[a-zA-Z0-9./]+											{
-																		BEGIN 0;
-																		yylval.str = strdup(yytext);
-																		return CMD;
+																		if(!expandAliases(yytext)) {
+																			BEGIN 0;
+																			yylval.str = strdup(yytext);
+																			return CMD;
+																		}
 																	}
 
 <INITIAL,PS>"|"														{
@@ -151,6 +156,35 @@
 																	}
 
 %%
+
+/**
+* Check if a command is an alias.  If so handle it and return 1; otherwise, return 0.
+*/
+int expandAliases(char *command) {
+	if(num_aliases == 0) {
+		//No aliases
+		return 0;
+	}
+
+	int i;
+	struct yas_alias *curr = alias_head->next;
+
+	for(i = 0; i < num_aliases; i++) {
+		if(!strcmp(curr->alias, command)) {
+			//Add chars from the expanded command to the input stream for Lex in reverse order (unput chars are added to the beginning of the stream).
+			int len = strlen(curr->cmd);
+			while(len >= 0) {
+				unput(curr->cmd[len--]);
+			}
+
+			break;
+		}
+
+		curr = curr->next;
+	}
+
+	return !(i == num_aliases);
+}
 
 void removeEscapes(char *arg, int len) {
 	int i = 0;

@@ -33,7 +33,6 @@ struct sigaction sigintStopper;		//Signal handler for interruption signal.
 void init_yas(void);
 void reinit(void);
 int getCommands(void);
-void expandAliases(void);
 void printPrompt(void);
 void parsePath(void);
 int checkExecutability(char **, char *);
@@ -47,8 +46,6 @@ int main() {
 		printPrompt();
 
 		if(!getCommands()) {
-			expandAliases();
-
 			if(builtin != BUILTIN_FALSE) {
 				switch(builtin) {
 					case BUILTIN_ALIAS:
@@ -106,7 +103,7 @@ int main() {
 				if(i < num_cmds) {
 					fprintf(stderr, "Error: %s is not a recognized internal or external command.\n", cmdtab[i].C_NAME);
 					reinit();
-					break;
+					continue;
 				}
 
 				int child_pids[num_cmds];			//Hold the PIDs for the child processes created.
@@ -563,19 +560,6 @@ int getCommands() {
 	}
 
 	return status;
-}
-
-/**
-* Search cmdtab for aliases.  Expand all aliases until they do not reference either another
-* alias or environmental variable.  If we have expanded a single alias ALIAS_THRESHOLD times,
-* throw an error suspecting the user of trying to create an infinite loop.  Also handle error
-* checking:
-*		- A builtin command executed through an alias still should not have redirection
-*		- If the command includes arguments, the arguments should be parsed correctly.
-*		- Tildes should be expanded, too
-*/
-void expandAliases(void) {
-	//To accomplish this, simply make YACC write to a pointer, not directly to the cmdtab.  When expanding aliases, make this pointer point to a new table of the same type as cmdtab.  Whenever reinit (and init) is run, reset the pointer to cmdtab.  When YACC returns, assumming no more aliases are present, check the total number of commands.  If the number of commands exceeds CMDS_MAX, print an error; otherwise, add the new commands to the row starting at the row that contained the command that required expansion.
 }
 
 /**
