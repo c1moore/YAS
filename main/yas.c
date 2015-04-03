@@ -51,7 +51,7 @@ int main() {
 			if(builtin != BUILTIN_FALSE) {
 				switch(builtin) {
 					case BUILTIN_ALIAS:
-						if(!alias(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+						if(alias(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
 							//An error occurred.
 						}
 						break;
@@ -59,29 +59,29 @@ int main() {
 						fprintf(stdout, "Good-bye!\n");
 						exit(0);
 					case BUILTIN_CD:
-						if(!cd(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+						if(cd(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
 							//An error occurred.
 						} else {
 							newPath = 1;
 						}
 						break;
 					case BUILTIN_PRNTENV:
-						if(!printenv(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+						if(printenv(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
 							//An error occurred.
 						}
 						break;
 					case BUILTIN_SETENV:
-						if(!env(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+						if(env(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
 							//An error occurred.
 						}
 						break;
 					case BUILTIN_UNALIAS:
-						if(!unalias(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+						if(unalias(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
 							//An error occurred.
 						}
 						break;
 					case BUILTIN_UNENV:
-						if(!unenv(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+						if(unenv(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
 							//An error occurred.
 						}
 						break;
@@ -158,7 +158,7 @@ int main() {
 								exit(0);
 							}
 						} else {
-							if(!pipe(pfds[i].fda)) {
+							if(pipe(pfds[i].fda)) {
 								//Error occurred creating pipe.
 								fprintf(stderr, "Error: Piping failed.\n");
 								break;
@@ -177,7 +177,7 @@ int main() {
 
 							if(child_pids[i] == 0) {
 								//In the child process
-								close(1);				//Close standard output
+								close(1);					//Close standard output
 								dup(pfds[i].fda[1]);		//Set end of pipe as stdout
 
 								//Close unneeded I/O
@@ -217,7 +217,7 @@ int main() {
 						}
 					} else {
 						//Commands in middle of pipe line
-						if(!pipe(pfds[i].fda)) {
+						if(pipe(pfds[i].fda)) {
 							//Error occurred creating pipe.
 							fprintf(stderr, "Error: Piping failed.\n");
 
@@ -248,11 +248,11 @@ int main() {
 						if(child_pids[i] == 0) {
 							//In the child process
 
-							//Setup stdout for the process.
+							//Setup stdout for the process.  Output goes through pipe formed in this iteration
 							close(1);
 							dup(pfds[i].fda[1]);
 
-							//Setup stdin for the process
+							//Setup stdin for the process.  Input is obtained from previous command (pipe from previous iteration).
 							close(0);
 							dup(pfds[i-1].fda[0]);
 
