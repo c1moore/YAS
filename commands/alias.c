@@ -39,15 +39,28 @@ int alias(int argc, char *argv[]) {
 			return(ARG_ERR);
 		}
 
-		curr = alias_head;
+		curr = alias_head;	//gets alias tab head
+
+		/*goes theough aliastab until it reaches the end of the list. If
+		at anypoint it catches either the inputed command or alias has been 
+		taken it returns an error and alerts the user*/
 		while (curr != NULL) {
-			curr = curr->next;
+			if(argv[2] == curr->cmd) {
+				fprintf(stderr,"Command %s is already set with alias %s",argv[2],curr->alias);
+				return(BUILTIN_ERR);
+			}
+			else if(argv[1] == curr->alias) {
+				fprintf(stderr,"Alias %s is already set with command %s",argv[1],curr->cmd);
+			}
+			else {
+				curr = curr->next;
+			}
 		}
 
-		curr->next = malloc(sizeof(*curr));
-		curr->alias = argv[1];
-		curr->cmd = argv[2];
-		curr->next->next = NULL;
+		curr->next = malloc(sizeof(*curr));		//creates new ending node
+		curr->alias = argv[1];					//sets new node with the alias
+		curr->cmd = argv[2];					//and command
+		curr->next->next = NULL;				//sets next node to be NULL
 
 		printf("%s = %s\n",curr->alias,curr->cmd);
 		return(0);

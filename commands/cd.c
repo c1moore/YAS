@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <stdlib.h>
+#include <yas.h>
 
 int cd(int argc, char *argv[]) {
 	int cd;
@@ -24,6 +25,7 @@ int cd(int argc, char *argv[]) {
 		return(0);			
 	}
 	else {
-		perror("Error");
+		perror("Error ");
+		return(BUILTIN_ERR);
 	}
 }
