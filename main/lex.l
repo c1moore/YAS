@@ -69,6 +69,7 @@
 																	}
 
 ^[ \t]*("./")?[-a-zA-Z0-9./_]+										{
+	fprintf(stderr, "%s\n", yytext);
 																		if(!expandAliases(yytext)) {
 																			yylval.str = strdup(yytext);
 																			return CMD;
@@ -76,6 +77,7 @@
 																	}
 
 <PS>("./")?[-a-zA-Z0-9./_]+											{
+	fprintf(stderr, "%s\n", yytext);
 																		if(!expandAliases(yytext)) {
 																			BEGIN 0;
 																			yylval.str = strdup(yytext);
