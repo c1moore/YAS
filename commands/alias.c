@@ -13,12 +13,12 @@ int alias(int argc, char *argv[]) {
 	the linked list of aliases and print all the aliases 
 	in the form of alias = cmd */
 	if (argc == 1) {
-		curr = alias_head;	
+		curr = alias_head->next;	
 		if(!num_aliases) {
 			printf("No aliases set\n");
 			return(0);
 		}			
-		while (curr->next != NULL) {
+		while (curr != NULL) {
 			printf("%s = %s\n",curr->alias,curr->cmd);
 			curr = curr->next;
 		}
