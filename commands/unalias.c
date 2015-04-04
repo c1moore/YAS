@@ -1,4 +1,5 @@
 #include <sys/types.h>
+#include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <yas.h>
@@ -16,8 +17,14 @@ int unalias(int argc, char *argv[]) {
 		}*/
 
 		curr = alias_head;
-		while (curr != NULL) {
-			if (curr->alias == argv[2]) {
+		if (strcmp(curr->next->alias,argv[1]) == 0) {
+			curr->next = curr->next->next;
+			free(curr->next->alias);
+			free(curr->next->cmd);
+			free(curr->next);
+		}
+		while (curr->next != NULL) {
+			if (strcmp(curr->alias,argv[1]) == 0) {
 				
 			}
 			curr = curr->next;
