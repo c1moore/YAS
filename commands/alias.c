@@ -59,15 +59,17 @@ int alias(int argc, char *argv[]) {
 			}
 		}
 
-		curr->next = (struct yas_alias*)malloc(sizeof(struct yas_alias));		//creates new ending node
-		
+		struct yas_alias *new_alias;
+		new_alias = (struct yas_alias*)malloc(sizeof(struct yas_alias));		//creates new ending node
+		curr->next = new_alias;
+
 		malloc(strlen(argv[1])+1);			//sets new node with the alias
-		curr->alias = argv[1];
+		new_alias->alias = argv[1];
 		
 		malloc(strlen(argv[2])+1);			//sets new node with command
-		curr->cmd = argv[2];				
+		new_alias->cmd = argv[2];				
 		
-		curr->next->next = NULL;				//sets next node to be NULL
+		new_alias->next->next = NULL;				//sets next node to be NULL
 		num_aliases++;							//increments num_aliases global variable
 
 		printf("%s = %s\n",curr->alias,curr->cmd);
