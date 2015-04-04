@@ -63,11 +63,11 @@ int alias(int argc, char *argv[]) {
 		new_alias = (struct yas_alias*)malloc(sizeof(struct yas_alias));		//creates new ending node
 		curr->next = new_alias;
 
-		malloc(strlen(argv[1])+1);			//sets new node with the alias
+		new_alias->alias = (char *) malloc((strlen(argv[1])+1) * sizeof(char));			//sets new node with the alias
 		strcpy(new_alias->alias, argv[1]);
 		
-		malloc(strlen(argv[2])+1);			//sets new node with command
-		strcpy(new_alias->cmd, argv[2]);				
+		new_alias->cmd = (char *) malloc((strlen(argv[2])+1) * sizeof(char));			//sets new node with command
+		strcpy(new_alias->cmd, argv[2]);	
 		
 		new_alias->next = NULL;				//sets next node to be NULL
 		num_aliases++;							//increments num_aliases global variable
