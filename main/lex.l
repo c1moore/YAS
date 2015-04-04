@@ -190,7 +190,7 @@ int expandAliases(char *command) {
 	int i;
 	struct yas_alias *curr = alias_head->next;
 
-	for(i = 0; i < num_aliases; i++) {
+	for(i = 0; i < num_aliases && curr; i++) {
 		if(!strcmp(curr->alias, command)) {
 			//Add chars from the expanded command to the input stream for Lex in reverse order (unput chars are added to the beginning of the stream).
 			unput(' ');
