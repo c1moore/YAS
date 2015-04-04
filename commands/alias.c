@@ -1,4 +1,5 @@
 #include <syscall.h>
+#include <string.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -17,7 +18,7 @@ int alias(int argc, char *argv[]) {
 			printf("No aliases set\n");
 			return(0);
 		}			
-		while (curr != NULL) {
+		while (curr->next != NULL) {
 			printf("%s = %s\n",curr->alias,curr->cmd);
 			curr = curr->next;
 		}
@@ -34,8 +35,8 @@ int alias(int argc, char *argv[]) {
 		}*/
 
 		//stops aliases being set to themselves
-		if(argv[1] == argv[2]) {
-			printf("You can't do that");
+		if(strcmp(argv[1],argv[2]) == 0) {
+			perror("You can't do that");
 			return(ARG_ERR);
 		}
 
@@ -44,23 +45,30 @@ int alias(int argc, char *argv[]) {
 		/*goes theough aliastab until it reaches the end of the list. If
 		at anypoint it catches either the inputed command or alias has been 
 		taken it returns an error and alerts the user*/
-		while (curr != NULL) {
-			if(argv[2] == curr->cmd) {
+		while (curr->next != NULL) {
+			if(strcmp(argv[2],curr->cmd) == 0) {
 				fprintf(stderr,"Command %s is already set with alias %s",argv[2],curr->alias);
 				return(BUILTIN_ERR);
 			}
-			else if(argv[1] == curr->alias) {
+			else if(strcmp(argv[1],curr->alias) == 0) {
 				fprintf(stderr,"Alias %s is already set with command %s",argv[1],curr->cmd);
+				return(BUILTIN_ERR);
 			}
 			else {
 				curr = curr->next;
 			}
 		}
 
-		curr->next = malloc(sizeof(*curr));		//creates new ending node
-		curr->alias = argv[1];					//sets new node with the alias
-		curr->cmd = argv[2];					//and command
+		curr->next = (struct yas_alias*)malloc(sizeof(struct yas_alias));		//creates new ending node
+		
+		malloc(strlen(argv[1])+1);			//sets new node with the alias
+		curr->alias = argv[1];
+		
+		malloc(strlen(argv[2])+1);			//sets new node with command
+		curr->cmd = argv[2];				
+		
 		curr->next->next = NULL;				//sets next node to be NULL
+		num_aliases++;							//increments num_aliases global variable
 
 		printf("%s = %s\n",curr->alias,curr->cmd);
 		return(0);
