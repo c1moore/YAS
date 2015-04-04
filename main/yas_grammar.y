@@ -1,4 +1,5 @@
 %{
+	#include <math.h>
 	#include <sys/types.h>
 	#include <pwd.h>
 	#include <stdlib.h>
@@ -427,15 +428,20 @@ void reallocArgs() {
 	char *old_ptr = new_cmd.C_ARGS;		//Keep track of where new_cmd.C_ARGS was originally.
 	num_resizes++;						//Increment number of times the array was resized.
 
-	new_cmd.C_ARGS = (char *) realloc(new_cmd.C_ARGS, ARG_LENGTH * RESIZE_RATIO * (num_resizes + 1) * sizeof(char *));
+	/**
+	* Since RESIZE_RATIO is 2, we could use bitwise shifting to obtain the value of RESIZE_RATIO^(num_resizes + 1),
+	* but since RESIZE_RATIO is a macro and is not guaranteed to remain 2, we will use a function to calculate the
+	* exponent.
+	*/
+	new_cmd.C_ARGS = (char *) realloc(new_cmd.C_ARGS, ARG_LENGTH * (int) pow(RESIZE_RATIO, num_resizes) * sizeof(char));
 
 	//If the location new_cmd.C_ARGS was pointing moved, all the pointers in C_ARGS_PNTR need to be updated.
 	if(old_ptr != new_cmd.C_ARGS) {
-		int i = 0, j = 0;
+		int i = 2, j = 0;
 
-		new_cmd.C_ARGS_PNTR[0] = new_cmd.C_ARGS;
+		new_cmd.C_ARGS_PNTR[1] = new_cmd.C_ARGS;
 
-		while(i < new_cmd.C_NARGS) {
+		while(i <= new_cmd.C_NARGS) {
 			for(; new_cmd.C_ARGS[j]; j++);
 			new_cmd.C_ARGS_PNTR[i++] = &new_cmd.C_ARGS[++j];
 		}
@@ -533,13 +539,15 @@ int replaceEnvVar(char *envVar) { /*Need to do this iteratively until no replace
 void addArg(char *dest, char *src) {
 	checkAndAlloc();
 
+	new_cmd.C_NARGS++;
+
 	int i = 0;
 	while(src[i]) {
 		//If the arguments array is not long enough, we need to reallocate space to it
 		int distance = &dest[i] - new_cmd.C_ARGS;
 		char *old = new_cmd.C_ARGS;
 
-		if(distance >= (ARG_LENGTH * RESIZE_RATIO * (num_resizes + 1))) {
+		if(distance >= (ARG_LENGTH * (int) pow(RESIZE_RATIO, num_resizes))) {
 			reallocArgs();
 
 			if(old != new_cmd.C_ARGS) {
@@ -565,8 +573,6 @@ void addArg(char *dest, char *src) {
 	}
 
 	dest[i] = 0;
-
-	new_cmd.C_NARGS++;
 }
 
 void yyerror(char *err) {
