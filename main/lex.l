@@ -194,7 +194,7 @@ int expandAliases(char *command) {
 		if(!strcmp(curr->alias, command)) {
 			//Add chars from the expanded command to the input stream for Lex in reverse order (unput chars are added to the beginning of the stream).
 			unput(' ');
-			int len = strlen(curr->cmd);
+			int len = strlen(curr->cmd) - 1;
 			while(len >= 0) {
 				unput(curr->cmd[len--]);
 			}
