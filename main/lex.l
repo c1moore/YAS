@@ -12,6 +12,8 @@
 	void removeEscapes(char *, int);
 	void removeEscapedQuotes(char *, int);
 
+	char aliased = 0;		//Keep track of whether the last token read was an alias.  If so, the argument is a command.
+
 	void yyerror(char *);
 %}
 
@@ -69,7 +71,6 @@
 																	}
 
 ^[ \t]*("./")?[-a-zA-Z0-9./_]+										{
-	fprintf(stderr, "%s\n", yytext);
 																		if(!expandAliases(yytext)) {
 																			yylval.str = strdup(yytext);
 																			return CMD;
@@ -77,11 +78,21 @@
 																	}
 
 <PS>("./")?[-a-zA-Z0-9./_]+											{
-	fprintf(stderr, "%s\n", yytext);
 																		if(!expandAliases(yytext)) {
 																			BEGIN 0;
 																			yylval.str = strdup(yytext);
 																			return CMD;
+																		}
+																	}
+
+[ \t]*("./")?[-a-zA-Z0-9./_]+										{
+																		if(!aliased) {
+																			yyless(yyleng);
+																		} else {
+																			if(!expandAliases(yytext)) {
+																				yylval.str = strdup(yytext);
+																				return CMD;
+																			}
 																		}
 																	}
 
@@ -91,6 +102,7 @@
 																	}
 
 <INITIAL,BI>\"([-a-zA-Z0-9.:/_\\?*`~!@#$%^&*()+={}[\]|:;',.<> \t]*(\\\")*)*\"	{
+	fprintf(stderr, "%s\n", yytext);
 																		char temp = yytext[yyleng - 1];
 
 																		yytext[yyleng - 1] = 0;					/* Remove the trailing '"' */
@@ -104,6 +116,7 @@
 																		return ARG;
 																	}
 <INITIAL,BI>-*([-a-zA-Z0-9.:/_]+(\\[ a-zA-Z0-9<>|"\\&*?]?)*)*		{
+	fprintf(stderr, "%s\n", yytext);
 																		yylval.str = strdup(yytext);
 
 																		removeEscapes(yylval.str, yyleng);
@@ -198,8 +211,11 @@ int expandAliases(char *command) {
 			unput(' ');
 			int len = strlen(curr->cmd) - 1;
 			while(len >= 0) {
+				fprintf(stderr, "-%c", curr->cmd[len]);
 				unput(curr->cmd[len--]);
 			}
+
+			aliased = 1;
 
 			break;
 		}
