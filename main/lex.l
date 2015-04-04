@@ -8,6 +8,7 @@
 	#include "y.tab.h"
 	#include "yas.h"
 
+	void removeWhitespaces(char *);
 	int expandAliases(char *);
 	void removeEscapes(char *, int);
 	void removeEscapedQuotes(char *, int);
@@ -73,6 +74,7 @@
 ^[ \t]*("./")?[-a-zA-Z0-9./_]+										{
 																		if(!expandAliases(yytext)) {
 																			yylval.str = strdup(yytext);
+																			removeWhitespaces(yylval.str);
 																			return CMD;
 																		}
 																	}
@@ -81,6 +83,7 @@
 																		if(!expandAliases(yytext)) {
 																			BEGIN 0;
 																			yylval.str = strdup(yytext);
+																			removeWhitespaces(yylval.str);
 																			return CMD;
 																		}
 																	}
@@ -91,6 +94,7 @@
 																		} else {
 																			if(!expandAliases(yytext)) {
 																				yylval.str = strdup(yytext);
+																				removeWhitespaces(yylval.str);
 																				return CMD;
 																			}
 																		}
@@ -192,6 +196,24 @@
 																	}
 
 %%
+
+/**
+* Remove whitespaces from the start of a command.  Command should be a pointer to yylval.str.
+*/
+void removeWhitespaces(char *command) {
+	int ws_length = 0;
+	while(command[ws_length] == ' ' || command[ws_length] == '\t')
+		ws_length++;
+
+	if(ws_length != 0) {
+		int i = 0;
+		while(command[ws_length]) {
+			command[i++] = command[ws_length++];
+		}
+
+		command[i] = 0;		//Add new null terminator.
+	}
+}
 
 /**
 * Check if a command is an alias.  If so handle it and return 1; otherwise, return 0.
