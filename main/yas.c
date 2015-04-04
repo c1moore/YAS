@@ -20,15 +20,18 @@ char builtin = BUILTIN_FALSE;
 char garbage_collected = GC_FALSE;	//Initialize to false.  It is the duty of YACC to set it to GC_TRUE if EOC is reached.
 int yerrno = 0;
 
-char *usrnm;						//Username
-char *homeDir;						//HOME environmental variable
-char *path;							//PATH environmental variable
-char **pathDirs = NULL;				//Pointer to the beginning of each NULL terminated directory in the path environmental variable
-char *machine;						//Machine name
-char newPath = 1;					//Specifies if the path has changed since the last prompt was displayed.
-char *cwd;							//Current filepath
-int homeDirLength = 0;				//Length of the HOME environmental variable
-struct sigaction sigintStopper;		//Signal handler for interruption signal.
+char *usrnm;							//Username
+char *homeDir;							//HOME environmental variable
+char *path;								//PATH environmental variable
+char **pathDirs = NULL;					//Pointer to the beginning of each NULL terminated directory in the path environmental variable
+char *machine;							//Machine name
+char newPath = 1;						//Specifies if the path has changed since the last prompt was displayed.
+char *cwd;								//Current filepath
+int homeDirLength = 0;					//Length of the HOME environmental variable
+struct sigaction killCatcher;			//Signal handler for interruption signal.
+int *child_pids = NULL;					//Pointer to all child processes.
+volatile sig_atomic_t num_cpids = 0;	//Number of children process PIDs stored in child_pids.
+int parent_pid = 0;						//Parent PID
 
 void init_yas(void);
 void reinit(void);
@@ -37,7 +40,7 @@ void printPrompt(void);
 void parsePath(void);
 int checkExecutability(char **, char *);
 void clean_console(void);
-void handleSignalInterrupt(int);
+void killChildren(int);
 
 int main() {
 	init_yas();
@@ -106,7 +109,7 @@ int main() {
 					continue;
 				}
 
-				int child_pids[num_cmds];			//Hold the PIDs for the child processes created.
+				child_pids = (int *) malloc(num_cmds * sizeof(int));	//Allocate space to child_pids.
 				struct pfd pfds[num_cmds - 1];		//Pipe file descriptors
 				int iofiles[3];						//File descriptors for I/O redirection
 
@@ -155,6 +158,8 @@ int main() {
 
 								break;
 							}
+
+							num_cpids++;
 
 							//In the child process
 							if(child_pids[i] == 0) {
@@ -211,6 +216,8 @@ int main() {
 								break;
 							}
 
+							num_cpids++;
+
 							if(child_pids[i] == 0) {
 								//In the child process
 								close(1);					//Close standard output
@@ -257,6 +264,8 @@ int main() {
 
 							break;
 						}
+
+						num_cpids++;
 
 						if(child_pids[i] == 0) {
 							//In the child process
@@ -320,6 +329,8 @@ int main() {
 
 							break;
 						}
+
+						num_cpids++;
 
 						if(child_pids[i] == 0) {
 							//In the child process
@@ -414,12 +425,17 @@ int main() {
 * Initialize global variables used by YAS and disable Ctrl-C from terminating the shell.
 */
 void init_yas(void) {
-	//Disable Ctrl-C (interrupts).
-	sigintStopper.sa_handler = handleSignalInterrupt;
-	sigemptyset(&(sigintStopper.sa_mask));
-	sigintStopper.sa_flags = 0;
+	//Set current/parent PID.
+	parent_pid = getpid();
+
+	//Disable Ctrl-C (interrupts) for this process and kill all running children.
+	memset(&killCatcher, 0, sizeof(killCatcher));
+	killCatcher.sa_handler = killChildren;
+	sigemptyset(&(killCatcher.sa_mask));
+	sigaddset(&killCatcher.sa_mask, SA_RESTART);
+	killCatcher.sa_flags = 0;
 	
-	sigaction(SIGINT, &sigintStopper, NULL);
+	sigaction(SIGINT, &killCatcher, NULL);
 
 	//Clear the console and display welcome messages.
 	system("echo \033c; echo \x1Bc; tput clear;");
@@ -479,6 +495,11 @@ void init_yas(void) {
 * These commands need to be run each time a command is executed.
 */
 void reinit(void) {
+	//Free space allocated to child_pids and set pointer to NULL.
+	num_cpids = 0;
+	free(child_pids);
+	child_pids = NULL;
+
 	num_cmds = 0;
 	yerrno = 0;
 	bg_mode = BG_MODE_FALSE;
@@ -732,6 +753,17 @@ void clean_console(void) {
 * Handle when Ctrl-C is pressed.  For now, simply ignore it.  Should be extended to kill the
 * currently running command.
 */
-void handleSignalInterrupt(int param) {
-	SIG_IGN(param);
+void killChildren(int sig_num) {
+	//Only execute this if we are in the parent process.
+	if(parent_pid = getpid()) {
+		int i = 0;
+
+		//Kill all child processes.
+		while(i < num_cpids) {
+			kill(child_pids[i], sig_num);
+		}
+	} else {
+		//If in a child process, do the default action.
+		SIG_DFL(sig_num);
+	}
 }
