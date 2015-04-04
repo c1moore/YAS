@@ -64,15 +64,15 @@ int alias(int argc, char *argv[]) {
 		curr->next = new_alias;
 
 		malloc(strlen(argv[1])+1);			//sets new node with the alias
-		new_alias->alias = argv[1];
+		strcpy(new_alias->alias, argv[1]);
 		
 		malloc(strlen(argv[2])+1);			//sets new node with command
-		new_alias->cmd = argv[2];				
+		strcpy(new_alias->cmd, argv[2]);				
 		
-		new_alias->next->next = NULL;				//sets next node to be NULL
+		new_alias->next = NULL;				//sets next node to be NULL
 		num_aliases++;							//increments num_aliases global variable
 
-		printf("%s = %s\n",curr->alias,curr->cmd);
+		printf("%s = %s\n",new_alias->alias,new_alias->cmd);
 		return(0);
 	}
 	

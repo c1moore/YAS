@@ -22,6 +22,7 @@ int unalias(int argc, char *argv[]) {
 			free(curr->next->alias);
 			free(curr->next->cmd);
 			free(curr->next);
+			curr = curr->next;
 		}
 		while (curr->next != NULL) {
 			if (strcmp(curr->alias,argv[1]) == 0) {
