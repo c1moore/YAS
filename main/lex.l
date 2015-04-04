@@ -29,7 +29,7 @@
 																		return BUILTIN;
 																	}
 
-<*>bye|BYE															{
+<*>bye|BYE|exit|EXIT|close|CLOSE									{
 																		BEGIN BI;
 																		yylval.str = strdup("bye");
 																		builtin = BUILTIN_BYE;
@@ -40,6 +40,13 @@
 																		BEGIN BI;
 																		yylval.str = strdup("cd");
 																		builtin = BUILTIN_CD;
+																		return BUILTIN;
+																	}
+
+<*>debug|DEBUG														{
+																		BEGIN BI;
+																		yylval.str = strdup("debug");
+																		builtin = BUILTIN_DEBUG;
 																		return BUILTIN;
 																	}
 
@@ -112,7 +119,6 @@
 																	}
 
 <INITIAL,BI>\"([-a-zA-Z0-9.:/_\\?*`~!@#$%^&*()+={}[\]|:;',.<> \t]*(\\\")*)*\"	{
-	fprintf(stderr, "%s\n", yytext);
 																		char temp = yytext[yyleng - 1];
 
 																		yytext[yyleng - 1] = 0;					/* Remove the trailing '"' */
@@ -126,7 +132,6 @@
 																		return ARG;
 																	}
 <INITIAL,BI>-*([-a-zA-Z0-9.:/_]+(\\[ a-zA-Z0-9<>|"\\&*?]?)*)*		{
-	fprintf(stderr, "%s\n", yytext);
 																		yylval.str = strdup(yytext);
 
 																		removeEscapes(yylval.str, yyleng);

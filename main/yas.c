@@ -33,6 +33,8 @@ struct sigaction errCatcher;			//Signal handler for error program error signals.
 int *child_pids = NULL;					//Pointer to all child processes.
 volatile sig_atomic_t num_cpids = 0;	//Number of children process PIDs stored in child_pids.
 int parent_pid = 0;						//Parent PID
+char debugmode = 0;						//Keep track of whether debug mode is on/off
+char even = 0;							//Is the number of times the command prompt been printed even or odd.
 
 void init_yas(void);
 void reinit(void);
@@ -59,13 +61,26 @@ int main() {
 						}
 						break;
 					case BUILTIN_BYE:
-						fprintf(stdout, "Good-bye!\n");
+						fprintf(stdout, "Good-bye!\n" ANSI_COLOR_RESET);
 						exit(0);
 					case BUILTIN_CD:
 						if(cd(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
 							//An error occurred.
 						} else {
 							newPath = 1;
+						}
+						break;
+					case BUILTIN_DEBUG:
+						if(cmdtab[0].C_NARGS > 1) {
+							if(strcasecmp(cmdtab[0].C_ARGS_PNTR[1], "on") == 0) {
+								debugmode = 1;
+							} else if(strcasecmp(cmdtab[0].C_ARGS_PNTR[1], "off") == 0) {
+								debugmode = 0;
+							} else {
+								debugmode = !debugmode;
+							}
+						} else {
+							debugmode = !debugmode;
 						}
 						break;
 					case BUILTIN_PRNTENV:
@@ -384,37 +399,65 @@ int main() {
 
 					//Wait for all children to DIE.
 					for(j = 0; j < num_cmds; j++) {
-						wait((int *) 0);
+						int status = wait((int *) 0);
+
+						if(WIFSIGNALED(status)) {
+							int sig_num = WTERMSIG(status);
+							switch(sig_num) {
+								case SIGSEGV:
+									fprintf(stderr, "Crap... That wasn't supposed to happen.\n\nSegmentation fault (something probably tried accessing memory that didn't belong to it).\n");
+									break;
+								case SIGILL:
+									fprintf(stderr, "Illegal instruction (something tried executing something that was not a function).\n");
+									break;
+								case SIGBUS:
+									fprintf(stderr, "Invalid pointer dereferenced (make sure pointers actually point to something before freeing them).\n");
+									break;
+								case SIGFPE:
+									fprintf(stderr, "Floating point error.\n");
+								case SIGSYS:
+									fprintf(stderr, "Bad system call.\n");
+									break;
+							}
+
+							#ifdef WCOREDUMP
+								if(WCOREDUMP(status)) {
+									fprintf(stderr, "Core dumped.\n");
+								}
+							#endif
+						}
 					}
 				}
 			}
 
-			int i=0;
-			for(; i < num_cmds; i++) {
-				printf("Command %d name: %s\n", i, cmdtab[i].C_NAME);
-				printf("\tNumber of arguments: %d\n", cmdtab[i].C_NARGS);
+			if(debugmode) {
+				int i=0;
+				for(; i < num_cmds; i++) {
+					printf("Command %d name: %s\n", i, cmdtab[i].C_NAME);
+					printf("\tNumber of arguments: %d\n", cmdtab[i].C_NARGS);
 
-				int j=0;
-				for(; j < cmdtab[i].C_NARGS; j++) {
-					printf("\t\tArg %d: %s\n", j, cmdtab[i].C_ARGS_PNTR[j]);
-				}
+					int j=0;
+					for(; j < cmdtab[i].C_NARGS; j++) {
+						printf("\t\tArg %d: %s\n", j, cmdtab[i].C_ARGS_PNTR[j]);
+					}
 
-				if(cmdtab[i].C_INPUT.field == C_IO_FILE) {
-					printf("\tInput:  %s\n", cmdtab[i].C_INPUT.io.file);
-				} else {
-					printf("\tInput:  %d\n", cmdtab[i].C_INPUT.io.pointer);
-				}
+					if(cmdtab[i].C_INPUT.field == C_IO_FILE) {
+						printf("\tInput:  %s\n", cmdtab[i].C_INPUT.io.file);
+					} else {
+						printf("\tInput:  %d\n", cmdtab[i].C_INPUT.io.pointer);
+					}
 
-				if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
-					printf("\tOutput: %s\n", cmdtab[i].C_OUTPUT.io.file);
-				} else {
-					printf("\tOutput: %d\n", cmdtab[i].C_OUTPUT.io.pointer);
-				}
+					if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
+						printf("\tOutput: %s\n", cmdtab[i].C_OUTPUT.io.file);
+					} else {
+						printf("\tOutput: %d\n", cmdtab[i].C_OUTPUT.io.pointer);
+					}
 
-				if(cmdtab[i].C_ERR.field == C_IO_FILE) {
-					printf("\tError:  %s\n", cmdtab[i].C_ERR.io.file);
-				} else {
-					printf("\tError:  %d\n", cmdtab[i].C_ERR.io.pointer);
+					if(cmdtab[i].C_ERR.field == C_IO_FILE) {
+						printf("\tError:  %s\n", cmdtab[i].C_ERR.io.file);
+					} else {
+						printf("\tError:  %d\n", cmdtab[i].C_ERR.io.pointer);
+					}
 				}
 			}
 		}
@@ -649,8 +692,15 @@ void printPrompt() {
 		newPath = 0;
 	}
 
-	fprintf(stdout, "%s@%s:%s> ", usrnm, machine, cwd);
-	fflush(stdout);
+	if(even) {
+		fprintf(stdout, ANSI_COLOR_BLUE "\n%s@%s:%s> ", usrnm, machine, cwd);
+		fflush(stdout);
+	} else {
+		fprintf(stdout, ANSI_COLOR_RESET "\n%s@%s:%s> ", usrnm, machine, cwd);
+		fflush(stdout);
+	}
+
+	even = (++even) % 2;
 }
 
 /**
@@ -781,11 +831,8 @@ void killChildren(int sig_num) {
 
 		//Kill all child processes.
 		while(i < num_cpids) {
-			kill(child_pids[i], sig_num);
+			kill(child_pids[i++], sig_num);
 		}
-
-		fprintf(stderr, "\n");
-		printPrompt();
 	} else {
 		//If in a child process, do the default action.
 		SIG_DFL(sig_num);
@@ -797,7 +844,7 @@ void warnErr(int sig_num) {
 	if(parent_pid = getpid()) {
 		switch(sig_num) {
 			case SIGSEGV:
-				fprintf(stderr, "Crap... That wasn't supposed to happen.\n\nSegmentation fault (something probably tried accessing memory that didn't belong to it).");
+				fprintf(stderr, "Crap... That wasn't supposed to happen.\n\nSegmentation fault (something probably tried accessing memory that didn't belong to it).\n");
 				break;
 			case SIGILL:
 				fprintf(stderr, "Illegal instruction (something tried executing something that was not a function).\n");

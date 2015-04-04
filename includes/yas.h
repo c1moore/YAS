@@ -5,6 +5,7 @@
 	#include "yas_structures.h"
 	#include "yas_errors.h"
 	#include "yas_builtin.h"
+	#include "yas_colors.h"
 
 	/**
 	* Define the possible values for bg_mode.
@@ -23,6 +24,7 @@
 	#define BUILTIN_SETENV	5
 	#define BUILTIN_UNALIAS	6
 	#define BUILTIN_UNENV	7
+	#define BUILTIN_DEBUG	8
 
 	/**
 	* Define the possible values for garbage_collected.
@@ -70,5 +72,15 @@
 	#define C_IO_OUT_INIT	{YAS_STDOUT, C_IO_POINTER, C_IO_NA}
 	#define C_IO_ERR_INIT	{YAS_STDERR, C_IO_POINTER, C_IO_NA}
 
-	#define YAS_BANNER		"Welcome to YAS!\n"
+	#define YAS_BANNER_1	ANSI_COLOR_CYAN "       YYYY     YYYY    AAAA         SSSS    !!!!!\n"
+	#define YAS_BANNER_2	"        YYY     YYY     AA AA       SS  SSS   !!!!|\n"
+	#define YAS_BANNER_3	"         YYY   YYY      AA  AA      SSS        !!!!!\n"
+	#define YAS_BANNER_4	"          YYY YYY       AA   AA      SSSS       !!!!!\n"
+	#define YAS_BANNER_5	"           YYYYY        AA    AA       SSSS      !!!!!\n"
+	#define YAS_BANNER_6	"            YYYY        AAAAAAAAA        SSSS     !!!!!\n"
+	#define YAS_BANNER_7	"             YYYY       AAAAAAAAAA   SSS SSSS\n"
+	#define YAS_BANNER_8	"              YYYY      AA       AA   SS SSS        !!!!!\n"
+	#define YAS_BANNER_9	"               YYYY     AA        AA   SSSS          !!!!!\n" ANSI_COLOR_RESET
+	#define YAS_BANNER_0	ANSI_COLOR_YELLOW "Welcome to\n" ANSI_COLOR_RESET
+	#define YAS_BANNER 		YAS_BANNER_0 YAS_BANNER_1 YAS_BANNER_2 YAS_BANNER_3 YAS_BANNER_4 YAS_BANNER_5 YAS_BANNER_6 YAS_BANNER_7 YAS_BANNER_8 YAS_BANNER_9
 #endif
