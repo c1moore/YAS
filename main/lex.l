@@ -18,7 +18,7 @@
 	void yyerror(char *);
 %}
 
-%x PS BI
+%x PS BI AM
 
 %%
 
@@ -76,6 +76,8 @@
 																			yylval.str = strdup(yytext);
 																			removeWhitespaces(yylval.str);
 																			return CMD;
+																		} else {
+																			BEGIN AM;
 																		}
 																	}
 
@@ -85,13 +87,17 @@
 																			yylval.str = strdup(yytext);
 																			removeWhitespaces(yylval.str);
 																			return CMD;
+																		} else {
+																			BEGIN AM;
 																		}
 																	}
 
-[ \t]*("./")?[-a-zA-Z0-9./_]+										{
+<AM>[ \t]*("./")?[-a-zA-Z0-9./_]+									{
+																		BEGIN 0;
 																		if(!aliased) {
-																			yyless(yyleng);
+																			yyless(0);
 																		} else {
+																			fprintf(stderr, "%s\n", "test");
 																			if(!expandAliases(yytext)) {
 																				yylval.str = strdup(yytext);
 																				removeWhitespaces(yylval.str);
