@@ -88,7 +88,7 @@
 																		return *yytext;
 																	}
 
-<INITIAL,BI>\"([-a-zA-Z0-9.:/_\\?*`~!@#$%^&*()+={}[\]|:;',.<> ]*(\\\")*)*\"	{
+<INITIAL,BI>\"([-a-zA-Z0-9.:/_\\?*`~!@#$%^&*()+={}[\]|:;',.<> \t]*(\\\")*)*\"	{
 																		char temp = yytext[yyleng - 1];
 
 																		yytext[yyleng - 1] = 0;					/* Remove the trailing '"' */
@@ -118,27 +118,27 @@
 																		}
 																	}
 
-<INITIAL,BI>"${"(\"([-a-zA-Z0-9.:/_\\?*`~!@#$%^&*()+={}[\]|:;',.<> ]*(\\\")*)*\")"}"	{
-																		char temp = yytext[yyleng - 2];
+<INITIAL,BI>"${"(\"([-a-zA-Z0-9.:/_\\?*`~!@#$%^&*()+={}[\]|;',<> \t]*(\\\")*)*\")"}"	{
+																		yytext[yyleng - 2] = 0;						/* Remove the trailing '"}' */
+																		int argLength = yyleng - 5;					/* New length of yylval.str */
 
-																		yytext[yyleng - 2] = 0;					/* Remove the trailing '"}' */
-																		yylval.str = strdup(&yytext[3]);		/* Don't copy the '${"' */
-																		yytext[yyleng - 2] = temp;
+																		removeEscapedQuotes(&yytext[3], argLength);	/* Remove escaped quotes. */
 
-																		int argLength = yyleng - 5;				/* New length of yylval.str */
-
-																		removeEscapedQuotes(yylval.str, argLength);
-
-																		return ENV_VAR;
+																		/* Replace/expand the environmental variable.  If there was an error, return ERROR. */
+																		if(replaceEnvVar(&yytext[3]) == -1) {
+																			return ERROR;
+																		}
 																	}
-<INITIAL,BI>"${"(-*([-a-zA-Z0-9.:/_]+(\\[ a-zA-Z0-9<>|"\\&])?)*)"}"	{
+<INITIAL,BI>"${"(-*([-a-zA-Z0-9.:/_()?*`~!@#$%^&=+\]|;',<> \t]+(\\[ a-zA-Z0-9<>|"\\&?*{}}])?)*)"}"	{
 																		yytext[yyleng - 1] = 0;					/* Remove the trailing '}' */
-																		yylval.str = strdup(&yytext[2]);		/* Don't copy the '${' */
-																		yyleng -= 3;
+																		int argLength = yyleng - 3;				/* Length of arg as seen by replaceEnvVar */
 
-																		removeEscapes(yylval.str, yyleng);
+																		removeEscapes(yylval.str, yyleng);		/* Remove escaped characters. */
 
-																		return ENV_VAR;
+																		/* Replace/expand the environmental variable.  If there wa an error, return ERROR. */
+																		if(replaceEnvVar(&yytext[2]) == -1) {
+																			return ERROR;
+																		}
 																	}
 
 2>																	return ERR_2_FILE;
@@ -301,6 +301,37 @@ int expandWildcards(char *argument) {
 	closedir(dir);
 
 	return return_value;
+}
+
+/**
+* Replace an environmental variable and place in back in the input stream.  If the variable
+* contains any ':' (colons), replace them with a ' ' (space).  Otherwise, do not modify it.
+* Since environmental variables may be nested without using the syntax specified here,
+* continue attempting to expand the variable until it has been fully expanded.  If an error
+* occurred, return -1; otherwise return 0.
+*/
+int replaceEnvVar(char *envVar) {
+	char *value = getenv(envVar);
+
+	if(value == NULL) {
+		yyerror("Error: Environmental variable not found.");
+		return -1;
+	}
+
+	//Make sure this environmental variable doesn't simply point to another.  If so, keep replacing value with the value of the environmental variable.
+	char *temp = NULL;
+	while(temp = getenv(value)) {
+		value = temp;
+	}
+
+	unput(' ');
+
+	int end = strlen(value) - 1;
+	while(end >= 0) {
+		unput(value[end--]);
+	}
+
+	return 0;
 }
 
 int yywrap() {

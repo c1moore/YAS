@@ -36,7 +36,7 @@
 
 %type <str> io_argument
 
-%token <str> CMD ARG EXPANDED_FILE EXPANDED_USER OUT_RA OUT_ERR_R OUT_ERR_RA ERR_2_FILE ERR_2_OUT BUILTIN ERROR ENV_VAR
+%token <str> CMD ARG EXPANDED_FILE EXPANDED_USER OUT_RA OUT_ERR_R OUT_ERR_RA ERR_2_FILE ERR_2_OUT BUILTIN ERROR
 %token <eoc> EOC
 
 %%
@@ -312,33 +312,6 @@ argument :
 
 						  									addArg(new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS], argument);
 														}
-			| ENV_VAR									{
-															checkAndAlloc();
-
-						  									if(new_cmd.C_NARGS == 1) {
-																new_cmd.C_ARGS_PNTR[1] = &new_cmd.C_ARGS[0];
-						  									} else if(new_cmd.C_NARGS > 1) {
-							  									int i = 0;
-						  										char *last_arg = new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS - 1];		//Pointer to the beginning of the last argument.
-
-							  									while(last_arg[i])	i++;		//Find where the last argument ends.
-
-																if(new_cmd.C_NARGS >= INIT_ARGS) {
-																	reallocArgsPntr();
-																}
-
-							  									new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS] = &last_arg[++i];
-						  									}
-
-						  									if(replaceEnvVar($1)) {
-						  										yyerror("Error: Environmental variable not found.");
-						  										yerrno = ENV_ERR;
-
-						  										YYABORT;
-						  									}
-
-						  									addArg(new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS], argument);
-														}
 			;
 
 io_argument :											/* IO arguments are handled slightly differently than regular arguments (they are placed in a separate field in the table). */
@@ -379,23 +352,6 @@ io_argument :											/* IO arguments are handled slightly differently than re
 							  								}
 
 							  								$$ = argument;
-														}
-			| ENV_VAR									{
-															if(replaceEnvVar($1)) {
-																yyerror("Error: Environmental variable not found.");
-																yerrno = ENV_ERR;
-
-																YYABORT;
-															}
-
-															if(strlen(argument) > PATH_MAX) {
-																yyerror("Error: Specified path too long (including the expanded environmental variable).");
-																yerrno = ENV_ERR;
-
-																YYABORT;
-															}
-
-															$$ = argument;
 														}
 			;
 
@@ -511,29 +467,6 @@ char replaceUserTilde(char *word) {
 	argument = (char *) malloc(totalLength);
 	strcpy(argument, home);
 	strcpy(&argument[homeLength-1], filePath);		//Overwrite the NULL and possible '/' char at the end of home.
-}
-
-int replaceEnvVar(char *envVar) { /*Need to do this iteratively until no replacement has been made.*/
-	char *value = getenv(envVar);
-	fprintf(stderr, "%s\n", envVar);
-
-	if(value == NULL)
-		return 1;
-
-	//Make sure this environmental variable doesn't simply point to another.  If so, keep replacing value with the value of the environmental variable.
-	char *temp = NULL;
-	while(temp = getenv(value)) {
-		free(value);
-		value = temp;
-	}
-
-	int length = 0;
-	while(value[length++]);
-
-	argument = (char *) malloc(length);
-	strcpy(argument, value);
-
-	return 0;
 }
 
 void addArg(char *dest, char *src) {
