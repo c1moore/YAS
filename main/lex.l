@@ -1,7 +1,10 @@
 %{
+	#include <dirent.h>
+	#include <fnmatch.h>
 	#include <stdlib.h>
 	#include <string.h>
 	#include <stdio.h>
+	#include <sys/types.h>
 	#include "y.tab.h"
 	#include "yas.h"
 
@@ -65,14 +68,14 @@
 																		return BUILTIN;
 																	}
 
-^[ \t]*("./")?[a-zA-Z0-9./]+										{
+^[ \t]*("./")?[-a-zA-Z0-9./_]+										{
 																		if(!expandAliases(yytext)) {
 																			yylval.str = strdup(yytext);
 																			return CMD;
 																		}
 																	}
 
-<PS>("./")?[a-zA-Z0-9./]+											{
+<PS>("./")?[-a-zA-Z0-9./_]+											{
 																		if(!expandAliases(yytext)) {
 																			BEGIN 0;
 																			yylval.str = strdup(yytext);
@@ -85,33 +88,50 @@
 																		return *yytext;
 																	}
 
-<INITIAL,BI>\"((.)*(\")*)*\"										{
+<INITIAL,BI>\"([-a-zA-Z0-9.:/_\\?*`~!@#$%^&*()+={}[\]|:;',.<> ]*(\\\")*)*\"	{
+																		char temp = yytext[yyleng - 1];
+
 																		yytext[yyleng - 1] = 0;					/* Remove the trailing '"' */
 																		yylval.str = strdup(&yytext[1]);		/* Don't copy the '"' */
-																		yyleng -= 2;
 
-																		removeEscapedQuotes(yylval.str, yyleng);
+																		yytext[yyleng - 1] = temp;
+																		int argLength = yyleng - 2;
+
+																		removeEscapedQuotes(yylval.str, argLength);
 
 																		return ARG;
 																	}
-<INITIAL,BI>-*([a-zA-Z0-9.:/]+(\\[ a-zA-Z0-9<>|"\\&]?)*)*			{
+<INITIAL,BI>-*([-a-zA-Z0-9.:/_]+(\\[ a-zA-Z0-9<>|"\\&*?]?)*)*		{
 																		yylval.str = strdup(yytext);
 
 																		removeEscapes(yylval.str, yyleng);
 
 																		return ARG;
 																	}
+<INITIAL,BI>([-a-zA-Z0-9.:/*?_]+(\\[ a-zA-Z0-9<>|"\\&*?]?)*)*		{
+																		int matches = expandWildcards(yytext);
+																		if(matches == -1) {
+																			return ERROR;
+																		} else if(matches == 1) {
+																			yyerror("Error: No files match pattern.");
+																			return ERROR;
+																		}
+																	}
 
-<INITIAL,BI>"${"(\"((.)*(\")*)*\")"}"								{
+<INITIAL,BI>"${"(\"([-a-zA-Z0-9.:/_\\?*`~!@#$%^&*()+={}[\]|:;',.<> ]*(\\\")*)*\")"}"	{
+																		char temp = yytext[yyleng - 2];
+
 																		yytext[yyleng - 2] = 0;					/* Remove the trailing '"}' */
 																		yylval.str = strdup(&yytext[3]);		/* Don't copy the '${"' */
-																		yyleng -= 5;							/* New length of yylval.str */
+																		yytext[yyleng - 2] = temp;
 
-																		removeEscapedQuotes(yylval.str, yyleng);
+																		int argLength = yyleng - 5;				/* New length of yylval.str */
+
+																		removeEscapedQuotes(yylval.str, argLength);
 
 																		return ENV_VAR;
 																	}
-<INITIAL,BI>"${"(-*([a-zA-Z0-9.:/]+(\\[ a-zA-Z0-9<>|"\\&])?)*)"}"	{
+<INITIAL,BI>"${"(-*([-a-zA-Z0-9.:/_]+(\\[ a-zA-Z0-9<>|"\\&])?)*)"}"	{
 																		yytext[yyleng - 1] = 0;					/* Remove the trailing '}' */
 																		yylval.str = strdup(&yytext[2]);		/* Don't copy the '${' */
 																		yyleng -= 3;
@@ -133,12 +153,12 @@
 
 ">>&"																return OUT_ERR_RA;
 
-<INITIAL,BI>~("/"[a-zA-Z0-9./]*)?									{
+<INITIAL,BI>~("/"[-a-zA-Z0-9./_]*)?									{
 																		yylval.str = strdup(yytext);
 																		return EXPANDED_FILE;
 																	}
 
-<INITIAL,BI>~[a-zA-Z0-9]+"/"?[a-zA-Z0-9./]*							{
+<INITIAL,BI>~[-a-zA-Z0-9_]+"/"?[-a-zA-Z0-9./_]*						{
 																		yylval.str = strdup(yytext);
 																		return EXPANDED_USER;
 																	}
@@ -147,6 +167,7 @@
 
 <*>.																{
 																		BEGIN 0;
+																		fprintf(stderr, "Error: %s not recognized.\n", yytext);
 																		return ERROR;
 																	}
 
@@ -172,6 +193,7 @@ int expandAliases(char *command) {
 	for(i = 0; i < num_aliases; i++) {
 		if(!strcmp(curr->alias, command)) {
 			//Add chars from the expanded command to the input stream for Lex in reverse order (unput chars are added to the beginning of the stream).
+			unput(' ');
 			int len = strlen(curr->cmd);
 			while(len >= 0) {
 				unput(curr->cmd[len--]);
@@ -186,6 +208,9 @@ int expandAliases(char *command) {
 	return !(i == num_aliases);
 }
 
+/**
+* Remove all '\' from the string.
+*/
 void removeEscapes(char *arg, int len) {
 	int i = 0;
 	for(; i < len; i++) {
@@ -200,6 +225,9 @@ void removeEscapes(char *arg, int len) {
 	}
 }
 
+/**
+* In strings, '\' should be escaped only when followed by '"'.  Otherwise '\' should be ignored.
+*/
 void removeEscapedQuotes(char *arg, int len) {
 	int i = 0;
 	for(; i < (len - 1); i++) {
@@ -212,6 +240,67 @@ void removeEscapedQuotes(char *arg, int len) {
 			}
 		}
 	}
+}
+
+/**
+* Expand wildcards '*' and '?'.  Return -1 if an error occurred, return 0 if matches found,
+* return 1 if no matches found.
+*/
+int expandWildcards(char *argument) {
+	char return_value = 1;
+
+	//If the argument contains a path, find the last '/'
+	int i = 0, j = -1;
+	while(argument[i]) {
+		if(argument[i] == '/') {
+			j = i;
+		}
+		i++;
+	}
+
+	char *directory = (char *) malloc(1 * sizeof(char));
+	*directory = '.';
+
+	char *pattern = (char *) malloc((strlen(argument) + 1) * sizeof(char));
+	strcpy(pattern, argument);
+	if(j >= 0) {
+		free(directory);
+		directory = (char *) malloc((argument - &argument[j] + 2) * sizeof(char));
+		strncpy(directory, argument, j + 1);
+		directory[j+2] = 0;
+
+		free(pattern);
+		pattern = (char *) malloc(strlen(&argument[j]) * sizeof(char));
+		strcpy(pattern, &argument[j + 1]);
+	}
+
+	DIR *dir;
+	if((dir = opendir(directory)) == NULL) {
+		yyerror("Error: Directory could not be opened.");
+		return -1;
+	}
+
+	struct dirent *file;
+	while((file = readdir(dir)) != NULL) {
+		if(fnmatch(pattern, file->d_name, FNM_PATHNAME | FNM_PERIOD) == 0) {
+			//Match
+			unput(' ');
+			unput('"');
+
+			int i = strlen(file->d_name) - 1;
+			while(i >= 0) {
+				unput(file->d_name[i--]);
+			}
+
+			unput('"');
+
+			return_value = 0;
+		}
+	}
+
+	closedir(dir);
+
+	return return_value;
 }
 
 int yywrap() {
