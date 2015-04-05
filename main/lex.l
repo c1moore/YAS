@@ -104,7 +104,6 @@
 																		if(!aliased) {
 																			yyless(0);
 																		} else {
-																			fprintf(stderr, "%s\n", "test");
 																			if(!expandAliases(yytext)) {
 																				yylval.str = strdup(yytext);
 																				removeWhitespaces(yylval.str);
@@ -113,7 +112,11 @@
 																		}
 																	}
 
-<INITIAL,PS>"|"														{
+<INITIAL,PS,BI>"|"													{
+																		if(YY_START == BI) {
+																			fprintf(stderr, ANSI_COLOR_RED "Error: I/O redirection is not supported with builtin commands.\n" ANSI_COLOR_RESET);
+																			return ERROR;
+																		}
 																		BEGIN PS;
 																		return *yytext;
 																	}
@@ -143,7 +146,7 @@
 																		if(matches == -1) {
 																			return ERROR;
 																		} else if(matches == 1) {
-																			yyerror("Error: No files match pattern.");
+																			fprintf(stderr, ANSI_COLOR_RED "Error: No files found that match %s\n" ANSI_COLOR_RESET, yytext);
 																			return ERROR;
 																		}
 																	}
@@ -195,9 +198,9 @@
 
 <*>[ \t]+															/* ignore white space */;
 
-<*>.																{
+<*>.*																{
 																		BEGIN 0;
-																		fprintf(stderr, "Error: %s not recognized.\n", yytext);
+																		fprintf(stderr, ANSI_COLOR_RED "Error: %s not recognized.\n" ANSI_COLOR_RESET, yytext);
 																		return ERROR;
 																	}
 
@@ -244,7 +247,6 @@ int expandAliases(char *command) {
 			unput(' ');
 			int len = strlen(curr->cmd) - 1;
 			while(len >= 0) {
-				fprintf(stderr, "-%c", curr->cmd[len]);
 				unput(curr->cmd[len--]);
 			}
 
@@ -327,7 +329,7 @@ int expandWildcards(char *argument) {
 
 	DIR *dir;
 	if((dir = opendir(directory)) == NULL) {
-		yyerror("Error: Directory could not be opened.");
+		fprintf(stderr, ANSI_COLOR_RED "Error: Directory %s could not be opened.\n" ANSI_COLOR_RESET, directory);
 		return -1;
 	}
 
@@ -365,7 +367,7 @@ int replaceEnvVar(char *envVar) {
 	char *value = getenv(envVar);
 
 	if(value == NULL) {
-		yyerror("Error: Environmental variable not found.");
+		fprintf(stderr, ANSI_COLOR_RED "Error: Environmental variable %s not found.\n" ANSI_COLOR_RESET, envVar);
 		return -1;
 	}
 

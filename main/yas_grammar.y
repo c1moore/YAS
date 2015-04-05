@@ -67,7 +67,36 @@ command :
 															checkAndAlloc();
 
 						  									if(strlen($1) > CMD_LENGTH) {
-						  										yyerror("Error: Command has too many characters.");
+						  										fprintf(stderr, ANSI_COLOR_RED "Error: Command has too many characters (Keep commands smaller than %d characters)." ANSI_COLOR_RESET, CMD_LENGTH);
+						  										yerrno = CMD_ERR;
+
+						  										YYABORT;
+						  									}
+
+								  							strcpy(new_cmd.C_NAME, $1);
+
+								  							cmdtab[num_cmds] = new_cmd;
+								  							cmdtab[num_cmds].C_ARGS_PNTR[0] = cmdtab[num_cmds].C_NAME;
+								  							num_cmds++;
+
+								  							new_cmd = empty_cmd;
+
+								  							io_in_set = io_out_set = io_err_set = num_resizes = pntr_resizes = 0;
+
+								  							//Set the input for the next command if there was a pipe.
+								  							if(io_pipe) {
+								  								new_cmd.C_INPUT.io.pointer = num_cmds - 1;
+																new_cmd.C_INPUT.field = C_IO_POINTER;
+
+																io_pipe = 0;
+																io_in_set = 1;
+								  							}
+														}
+			| CMD io_redirects_no_null arguments end_of_command	{
+															checkAndAlloc();
+
+						  									if(strlen($1) > CMD_LENGTH) {
+						  										fprintf(stderr, ANSI_COLOR_RED "Error: Command has too many characters (Keep commands smaller than %d characters)." ANSI_COLOR_RESET, CMD_LENGTH);
 						  										yerrno = CMD_ERR;
 
 						  										YYABORT;
@@ -126,6 +155,38 @@ command :
 
 															YYACCEPT;
 														}
+			| CMD arguments io_redirects ERROR end_of_command	{
+															yerrno = YAS_ERR;
+
+															YYABORT;
+														}
+			| CMD io_redirects_no_null arguments ERROR end_of_command	{
+															yerrno = YAS_ERR;
+
+															YYABORT;
+														}
+			| BUILTIN arguments ERROR end_of_command_null		{
+															yerrno = YAS_ERR;
+
+															YYABORT;
+														}
+			| arguments io_redirects ERROR end_of_command		{
+															yerrno = YAS_ERR;
+
+															YYABORT;
+														}
+			| arguments_no_null io_redirects end_of_command		{
+															fprintf(stderr, ANSI_COLOR_RED "Error: No command found.  Commands cannot contain metacharacters.\n" ANSI_COLOR_RESET);
+															yerrno = YAS_ERR;
+
+															YYABORT;
+														}
+			| io_redirects_no_null arguments end_of_command		{
+															fprintf(stderr, ANSI_COLOR_RED "Error: No command found.  Commands cannot contain metacharacters.\n" ANSI_COLOR_RESET);
+															yerrno = YAS_ERR;
+
+															YYABORT;
+														}
 			;
 
 end_of_command :
@@ -151,9 +212,23 @@ end_of_command :
 														}
 			;
 
+end_of_command_null :
+			  EOC 										{
+			  												reached_eoc = 1;
+			  												garbage_collected = GC_TRUE;
+														}
+			| '|'
+			| '&'
+			| /* NULL */
+			;
+
 io_redirects :
 			  io_redirects io_redirect
 			| /* NULL */
+			;
+
+io_redirects_no_null :
+			  io_redirects_no_null io_redirect
 			;
 
 io_redirect :
@@ -243,6 +318,10 @@ arguments :
 														}
 			;
 
+arguments_no_null :
+			  arguments_no_null argument
+			;
+
 argument :
 			  ARG										{
 						  									checkAndAlloc();
@@ -317,7 +396,7 @@ argument :
 io_argument :											/* IO arguments are handled slightly differently than regular arguments (they are placed in a separate field in the table). */
 			  ARG										{
 						  									if(strlen($1) > PATH_MAX) {
-						  										yyerror("Error: Specified path too long.");
+						  										fprintf(stderr, ANSI_COLOR_RED "Error: Specified path (%s) too long.\nPaths must be shorter than %d.\n" ANSI_COLOR_RESET, $1, PATH_MAX);
 						  										yerrno = ARG_ERR;
 
 						  										YYABORT;
@@ -329,7 +408,7 @@ io_argument :											/* IO arguments are handled slightly differently than re
 						  									replaceTilde($1);
 
 						  									if(strlen(argument) > PATH_MAX) {
-						  										yyerror("Error: Specified path too long (including the tilde expansion).");
+						  										fprintf(stderr, ANSI_COLOR_RED "Error: Specified path (%s) too long.\nPaths must be shorter than %d (including tilde expansion).\n" ANSI_COLOR_RESET, $1, PATH_MAX);
 						  										yerrno = ARG_ERR;
 
 						  										YYABORT;
@@ -345,7 +424,7 @@ io_argument :											/* IO arguments are handled slightly differently than re
 						  									}
 
 						  									if(strlen(argument) > PATH_MAX) {
-						  										yyerror("Error: Specified path too long (including the tilde expansion).");
+						  										fprintf(stderr, ANSI_COLOR_RED "Error: Specified path (%s) too long.\nPaths must be shorter than %d (including tilde expansion).\n" ANSI_COLOR_RESET, $1, PATH_MAX);
 						  										yerrno = ARG_ERR;
 																
 						  										YYABORT;
@@ -444,7 +523,7 @@ char replaceUserTilde(char *word) {
 
 	struct passwd *user = getpwnam(uname);
 	if(user == NULL) {
-		yyerror("Error: User not found.");
+		fprintf(stderr, ANSI_COLOR_RED "Error: User %s not found.\n" ANSI_COLOR_RESET, uname);
 		return 2;
 	}
 
@@ -509,7 +588,7 @@ void addArg(char *dest, char *src) {
 }
 
 void yyerror(char *err) {
-	fprintf(stderr, "%s\n", err);
+	fprintf(stderr, ANSI_COLOR_RED "%s\n" ANSI_COLOR_RESET, err);
 
 	reinitializeGlobals();		//After calling yyerror, YYABORT should be called so there should be no harm in reinitializing variables here.
 }

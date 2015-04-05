@@ -627,19 +627,19 @@ int getCommands() {
 
 		switch(yerrno) {
 			case CMD_ERR:
-				fprintf(stderr, "\n%s\n", "For more help, type help cmd.");
+				fprintf(stderr, ANSI_COLOR_RED "\n%s", "For more help, type help cmd.");
 				return status;
 			case IO_ERR:
-				fprintf(stderr, "\n%s\n", "For more help, type help io.");
+				fprintf(stderr, ANSI_COLOR_RED "\n%s", "For more help, type help io.");
 				return status;
 			case USER_ERR:
-				fprintf(stderr, "\n%s\n", "For more help, type help user.");
+				fprintf(stderr, ANSI_COLOR_RED "\n%s", "For more help, type help user.");
 				return status;
 			case ARG_ERR:
-				fprintf(stderr, "\n%s\n", "For more help, type help arg.");
+				fprintf(stderr, ANSI_COLOR_RED "\n%s", "For more help, type help arg.");
 				return status;
 			default:
-				fprintf(stderr, "\n%s\n", "For more help, type help.");
+				fprintf(stderr, ANSI_COLOR_RED "\n%s", "For more help, type help.");
 				return status;
 		}
 	}
