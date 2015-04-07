@@ -8,7 +8,7 @@
 	#include "y.tab.h"
 	#include "yas.h"
 
-	void removeWhitespaces(char *);
+	void trim(char *);
 	int expandAliases(char *);
 	void removeEscapes(char *, int);
 	void removeEscapedQuotes(char *, int);
@@ -22,56 +22,56 @@
 
 %%
 
-<*>alias|ALIAS 														{
+<INITIAL,PS>^[ \t]*alias|^[ \t]*ALIAS 								{
 																		BEGIN BI;
 																		yylval.str = strdup("alias");
 																		builtin = BUILTIN_ALIAS;
 																		return BUILTIN;
 																	}
 
-<*>bye|BYE|exit|EXIT|close|CLOSE									{
+<INITIAL,PS>^[ \t]*bye|^[ \t]*BYE|^[ \t]*exit|^[ \t]*EXIT|^[ \t]*close|^[ \t]*CLOSE	{
 																		BEGIN BI;
 																		yylval.str = strdup("bye");
 																		builtin = BUILTIN_BYE;
 																		return BUILTIN;
 																	}
 
-<*>cd|CD 															{
+<INITIAL,PS>^[ \t]*cd|^[ \t]*CD 										{
 																		BEGIN BI;
 																		yylval.str = strdup("cd");
 																		builtin = BUILTIN_CD;
 																		return BUILTIN;
 																	}
 
-<*>debug|DEBUG														{
+<INITIAL,PS>^[ \t]*debug|^[ \t]*DEBUG									{
 																		BEGIN BI;
 																		yylval.str = strdup("debug");
 																		builtin = BUILTIN_DEBUG;
 																		return BUILTIN;
 																	}
 
-<*>printenv|PRINTENV												{
+<INITIAL,PS>^[ \t]*printenv|^[ \t]*PRINTENV							{
 																		BEGIN BI;
 																		yylval.str = strdup("printenv");
 																		builtin = BUILTIN_PRNTENV;
 																		return BUILTIN;
 																	}
 
-<*>setenv|SETENV													{
+<INITIAL,PS>^[ \t]*setenv|^[ \t]*SETENV								{
 																		BEGIN BI;
 																		yylval.str = strdup("setenv");
 																		builtin = BUILTIN_SETENV;
 																		return BUILTIN;
 																	}
 
-<*>unalias|UNALIAS													{
+<INITIAL,PS>^[ \t]*unalias|^[ \t]*UNALIAS								{
 																		BEGIN BI;
 																		yylval.str = strdup("unalias");
 																		builtin = BUILTIN_UNALIAS;
 																		return BUILTIN;
 																	}
 
-<*>unsetenv|UNSETENV												{
+<INITIAL,PS>^[ \t]*unsetenv|^[ \t]*UNSETENV							{
 																		BEGIN BI;
 																		yylval.str = strdup("unsetenv");
 																		builtin = BUILTIN_UNENV;
@@ -81,7 +81,7 @@
 ^[ \t]*("./")?[-a-zA-Z0-9./_]+										{
 																		if(!expandAliases(yytext)) {
 																			yylval.str = strdup(yytext);
-																			removeWhitespaces(yylval.str);
+																			trim(yylval.str);
 																			return CMD;
 																		} else {
 																			BEGIN AM;
@@ -92,7 +92,7 @@
 																		if(!expandAliases(yytext)) {
 																			BEGIN 0;
 																			yylval.str = strdup(yytext);
-																			removeWhitespaces(yylval.str);
+																			trim(yylval.str);
 																			return CMD;
 																		} else {
 																			BEGIN AM;
@@ -100,13 +100,14 @@
 																	}
 
 <AM>[ \t]*("./")?[-a-zA-Z0-9./_]+									{
-																		BEGIN 0;
 																		if(!aliased) {
+																			BEGIN 0;
 																			yyless(0);
 																		} else {
 																			if(!expandAliases(yytext)) {
+																				BEGIN 0;
 																				yylval.str = strdup(yytext);
-																				removeWhitespaces(yylval.str);
+																				trim(yylval.str);
 																				return CMD;
 																			}
 																		}
@@ -198,7 +199,7 @@
 
 <*>[ \t]+															/* ignore white space */;
 
-<*>.*																{
+<*>.																{
 																		BEGIN 0;
 																		fprintf(stderr, ANSI_COLOR_RED "Error: %s not recognized.\n" ANSI_COLOR_RESET, yytext);
 																		return ERROR;
@@ -214,7 +215,7 @@
 /**
 * Remove whitespaces from the start of a command.  Command should be a pointer to yylval.str.
 */
-void removeWhitespaces(char *command) {
+void trim(char *command) {
 	int ws_length = 0;
 	while(command[ws_length] == ' ' || command[ws_length] == '\t')
 		ws_length++;
