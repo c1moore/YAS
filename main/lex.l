@@ -22,56 +22,112 @@
 
 %%
 
-<INITIAL,PS>^[ \t]*alias|^[ \t]*ALIAS 								{
+<INITIAL>^[ \t]*alias|^[ \t]*ALIAS 									{
 																		BEGIN BI;
 																		yylval.str = strdup("alias");
 																		builtin = BUILTIN_ALIAS;
 																		return BUILTIN;
 																	}
 
-<INITIAL,PS>^[ \t]*bye|^[ \t]*BYE|^[ \t]*exit|^[ \t]*EXIT|^[ \t]*close|^[ \t]*CLOSE	{
+<PS>alias|ALIAS 													{
+																		BEGIN BI;
+																		yylval.str = strdup("alias");
+																		builtin = BUILTIN_ALIAS;
+																		return BUILTIN;
+																	}
+
+<INITIAL>^[ \t]*bye|^[ \t]*BYE|^[ \t]*exit|^[ \t]*EXIT|^[ \t]*close|^[ \t]*CLOSE	{
 																		BEGIN BI;
 																		yylval.str = strdup("bye");
 																		builtin = BUILTIN_BYE;
 																		return BUILTIN;
 																	}
 
-<INITIAL,PS>^[ \t]*cd|^[ \t]*CD 										{
+<PS>bye|BYE|exit|EXIT|close|CLOSE									{
+																		BEGIN BI;
+																		yylval.str = strdup("bye");
+																		builtin = BUILTIN_BYE;
+																		return BUILTIN;
+																	}
+
+<INITIAL>^[ \t]*cd|^[ \t]*CD 										{
 																		BEGIN BI;
 																		yylval.str = strdup("cd");
 																		builtin = BUILTIN_CD;
 																		return BUILTIN;
 																	}
 
-<INITIAL,PS>^[ \t]*debug|^[ \t]*DEBUG									{
+<PS>cd|CD 															{
+																		BEGIN BI;
+																		yylval.str = strdup("cd");
+																		builtin = BUILTIN_CD;
+																		return BUILTIN;
+																	}
+
+<INITIAL>^[ \t]*debug|^[ \t]*DEBUG									{
 																		BEGIN BI;
 																		yylval.str = strdup("debug");
 																		builtin = BUILTIN_DEBUG;
 																		return BUILTIN;
 																	}
 
-<INITIAL,PS>^[ \t]*printenv|^[ \t]*PRINTENV							{
+<PS>debug|DEBUG														{
+																		BEGIN BI;
+																		yylval.str = strdup("debug");
+																		builtin = BUILTIN_DEBUG;
+																		return BUILTIN;
+																	}
+
+<INITIAL>^[ \t]*printenv|^[ \t]*PRINTENV							{
 																		BEGIN BI;
 																		yylval.str = strdup("printenv");
 																		builtin = BUILTIN_PRNTENV;
 																		return BUILTIN;
 																	}
 
-<INITIAL,PS>^[ \t]*setenv|^[ \t]*SETENV								{
+<PS>printenv|PRINTENV												{
+																		BEGIN BI;
+																		yylval.str = strdup("printenv");
+																		builtin = BUILTIN_PRNTENV;
+																		return BUILTIN;
+																	}
+
+<INITIAL>^[ \t]*setenv|^[ \t]*SETENV								{
 																		BEGIN BI;
 																		yylval.str = strdup("setenv");
 																		builtin = BUILTIN_SETENV;
 																		return BUILTIN;
 																	}
 
-<INITIAL,PS>^[ \t]*unalias|^[ \t]*UNALIAS								{
+<PS>setenv|SETENV													{
+																		BEGIN BI;
+																		yylval.str = strdup("setenv");
+																		builtin = BUILTIN_SETENV;
+																		return BUILTIN;
+																	}
+
+<INITIAL>^[ \t]*unalias|^[ \t]*UNALIAS								{
 																		BEGIN BI;
 																		yylval.str = strdup("unalias");
 																		builtin = BUILTIN_UNALIAS;
 																		return BUILTIN;
 																	}
 
-<INITIAL,PS>^[ \t]*unsetenv|^[ \t]*UNSETENV							{
+<PS>unalias|UNALIAS													{
+																		BEGIN BI;
+																		yylval.str = strdup("unalias");
+																		builtin = BUILTIN_UNALIAS;
+																		return BUILTIN;
+																	}
+
+<INITIAL>^[ \t]*unsetenv|^[ \t]*UNSETENV							{
+																		BEGIN BI;
+																		yylval.str = strdup("unsetenv");
+																		builtin = BUILTIN_UNENV;
+																		return BUILTIN;
+																	}
+
+<PS>unsetenv|UNSETENV												{
 																		BEGIN BI;
 																		yylval.str = strdup("unsetenv");
 																		builtin = BUILTIN_UNENV;
@@ -201,6 +257,10 @@
 
 <*>.																{
 																		BEGIN 0;
+																		if(strcmp("|", yytext) == 0) {
+																			fprintf(stderr, ANSI_COLOR_RED "Error: Builtin commands cannot be piped (I/O redirection is not supported with builtin commands).\n");
+																			return ERROR;
+																		}
 																		fprintf(stderr, ANSI_COLOR_RED "Error: %s not recognized.\n" ANSI_COLOR_RESET, yytext);
 																		return ERROR;
 																	}
