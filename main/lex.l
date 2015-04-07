@@ -246,6 +246,13 @@
 <INITIAL,PS,BI>"|"													{
 																		if(YY_START == BI) {
 																			fprintf(stderr, ANSI_COLOR_RED "Error: I/O redirection is not supported with builtin commands.\n" ANSI_COLOR_RESET);
+
+																			if(parentAlias != NULL) {
+																				free(parentAlias);
+																				parentAlias = NULL;
+																			}
+																			aliased = 0;
+																				
 																			return ERROR;
 																		}
 																		BEGIN PS;
@@ -275,9 +282,22 @@
 <INITIAL,BI>([-a-zA-Z0-9.:/*?_]+(\\[ a-zA-Z0-9<>|"\\&*?]?)*)*		{
 																		int matches = expandWildcards(yytext);
 																		if(matches == -1) {
+																			if(parentAlias != NULL) {
+																				free(parentAlias);
+																				parentAlias = NULL;
+																			}
+																			aliased = 0;
+
 																			return ERROR;
 																		} else if(matches == 1) {
 																			fprintf(stderr, ANSI_COLOR_RED "Error: No files found that match %s\n" ANSI_COLOR_RESET, yytext);
+
+																			if(parentAlias != NULL) {
+																				free(parentAlias);
+																				parentAlias = NULL;
+																			}
+																			aliased = 0;
+
 																			return ERROR;
 																		}
 																	}
@@ -290,6 +310,12 @@
 
 																		/* Replace/expand the environmental variable.  If there was an error, return ERROR. */
 																		if(replaceEnvVar(&yytext[3]) == -1) {
+																			if(parentAlias != NULL) {
+																				free(parentAlias);
+																				parentAlias = NULL;
+																			}
+																			aliased = 0;
+
 																			return ERROR;
 																		}
 																	}
@@ -301,6 +327,12 @@
 
 																		/* Replace/expand the environmental variable.  If there wa an error, return ERROR. */
 																		if(replaceEnvVar(&yytext[2]) == -1) {
+																			if(parentAlias != NULL) {
+																				free(parentAlias);
+																				parentAlias = NULL;
+																			}
+																			aliased = 0;
+
 																			return ERROR;
 																		}
 																	}
@@ -333,9 +365,23 @@
 																		BEGIN 0;
 																		if(strcmp("|", yytext) == 0) {
 																			fprintf(stderr, ANSI_COLOR_RED "Error: Builtin commands cannot be piped (I/O redirection is not supported with builtin commands).\n");
+
+																			if(parentAlias != NULL) {
+																				free(parentAlias);
+																				parentAlias = NULL;
+																			}
+																			aliased = 0;
+
 																			return ERROR;
 																		}
 																		fprintf(stderr, ANSI_COLOR_RED "Error: %s not recognized.\n" ANSI_COLOR_RESET, yytext);
+
+																		if(parentAlias != NULL) {
+																			free(parentAlias);
+																			parentAlias = NULL;
+																		}
+																		aliased = 0;
+
 																		return ERROR;
 																	}
 
