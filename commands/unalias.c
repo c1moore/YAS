@@ -15,19 +15,23 @@ int unalias(int argc, char *argv[]) {
 		curr = alias_head;
 		if (strcmp(curr->next->alias,argv[1]) == 0) {
 			printf("Removed alias %s = %s", curr->next->alias, curr->next->cmd);
-			free(curr->next->alias);
-			free(curr->next->cmd);
-			free(curr->next);
+			struct yas_alias* temp = curr->next;
 			curr->next = curr->next->next;
+			free(temp->alias);
+			free(temp->cmd);
+			free(temp);
+			num_aliases--;
 			return(0);
 		}
 		while (curr->next != NULL) {
 			if (strcmp(curr->next->alias,argv[1]) == 0) {
 				printf("Removed alias %s = %s", curr->next->alias, curr->next->cmd);
-				free(curr->next->alias);
-				free(curr->next->cmd);
-				free(curr->next);
+				struct yas_alias* temp = curr->next;
 				curr->next = curr->next->next;
+				free(temp->alias);
+				free(temp->cmd);
+				free(temp);
+				num_aliases--;
 				return(0);
 			}
 			curr = curr->next;
