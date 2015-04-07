@@ -36,7 +36,7 @@ int alias(int argc, char *argv[]) {
 
 		//stops aliases being set to themselves
 		if(strcmp(argv[1],argv[2]) == 0) {
-			perror("You can't do that");
+			perror("Aliases cannot be set to themselves.");
 			return(ARG_ERR);
 		}
 
@@ -46,7 +46,7 @@ int alias(int argc, char *argv[]) {
 		at anypoint it catches either the inputed command or alias has been 
 		taken it returns an error and alerts the user*/
 		while (curr->next != NULL) {
-			if(strcmp(argv[2],curr->cmd) == 0) {
+			/*if(strcmp(argv[2],curr->cmd) == 0) {
 				fprintf(stderr,"Command %s is already set with alias %s",argv[2],curr->alias);
 				return(BUILTIN_ERR);
 			}
@@ -54,10 +54,8 @@ int alias(int argc, char *argv[]) {
 			else if(strcmp(argv[1],curr->alias) == 0 || strcmp(argv[1],curr->cmd) == 0) {
 				fprintf(stderr,"Alias %s is already set with command %s",argv[1],curr->cmd);
 				return(BUILTIN_ERR);
-			}
-			else {
-				curr = curr->next;
-			}
+			}*/	
+			curr = curr->next;
 		}
 
 		struct yas_alias *new_alias;
