@@ -50,7 +50,8 @@ int alias(int argc, char *argv[]) {
 				fprintf(stderr,"Command %s is already set with alias %s",argv[2],curr->alias);
 				return(BUILTIN_ERR);
 			}
-			else if(strcmp(argv[1],curr->alias) == 0) {
+			//alerts use that the alias is already a system command or that the cmd is already
+			else if(strcmp(argv[1],curr->alias) == 0 || strcmp(argv[1],curr->cmd) == 0) {
 				fprintf(stderr,"Alias %s is already set with command %s",argv[1],curr->cmd);
 				return(BUILTIN_ERR);
 			}
