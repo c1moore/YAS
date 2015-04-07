@@ -13,8 +13,8 @@
 	void removeEscapes(char *, int);
 	void removeEscapedQuotes(char *, int);
 
-	char aliased = 0;		//Keep track of whether the last token read was an alias.  If so, the argument is a command.
-	char *parentAlias;		//While expanding aliases, if a nested alias is equal to the original alias (parentAlias), throw an error.
+	char aliased = 0;			//Keep track of whether the last token read was an alias.  If so, the argument is a command.
+	char *parentAlias = NULL;	//While expanding aliases, if a nested alias is equal to the original alias (parentAlias), throw an error.
 
 	void yyerror(char *);
 %}
@@ -228,6 +228,13 @@
 																				BEGIN 0;
 																				yylval.str = strdup(yytext);
 																				trim(yylval.str);
+
+																				if(parentAlias != NULL) {
+																					free(parentAlias);
+																					parentAlias = NULL;
+																				}
+																				aliased = 0;
+
 																				return CMD;
 																			} else if(result == -1) {
 																				BEGIN 0;
@@ -382,6 +389,8 @@ int expandAliases(char *command) {
 			} else if(strcmp(parentAlias, curr->cmd) == 0) {
 				fprintf(stderr, ANSI_COLOR_RED "Error: %s creates an infinite loop.  Fix before executing.\n", parentAlias);
 				free(parentAlias);
+				parentAlias = NULL;
+				aliased = 0;
 				return -1;
 			}
 
