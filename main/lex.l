@@ -243,6 +243,58 @@
 																		}
 																	}
 
+<AM>\"([-a-zA-Z0-9.:/_\\?*`~!@#$%^&*()+={}[\]|:;',.<> \t]*(\\\")*)*\"	{
+																		if(!aliased) {
+																			BEGIN 0;
+																			yyless(0);
+																		} else {
+																			yytext[yyleng - 1] = 0;		//Remove trailing quote.
+																			trim(yytext);				//Remove whitespace before first quote
+																			int result = expandAliases(&yytext[1]);
+																			if(!result) {
+																				BEGIN 0;
+																				yylval.str = strdup(yytext);
+
+																				if(parentAlias != NULL) {
+																					free(parentAlias);
+																					parentAlias = NULL;
+																				}
+																				aliased = 0;
+
+																				return CMD;
+																			} else if(result == -1) {
+																				BEGIN 0;
+																				return ERROR;
+																			}
+																		}
+																	}
+
+<AM>-*([-a-zA-Z0-9.:/_]+(\\[ a-zA-Z0-9<>|"\\&*?]?)*)*				{
+																		if(!aliased) {
+																			BEGIN 0;
+																			yyless(0);
+																		} else {
+																			trim(yytext);
+																			removeEscapes(yytext, yyleng);
+																			int result = expandAliases(yytext);
+																			if(!result) {
+																				BEGIN 0;
+																				yylval.str = strdup(yytext);
+
+																				if(parentAlias != NULL) {
+																					free(parentAlias);
+																					parentAlias = NULL;
+																				}
+																				aliased = 0;
+
+																				return CMD;
+																			} else if(result == -1) {
+																				BEGIN 0;
+																				return ERROR;
+																			}
+																		}
+																	}
+
 <INITIAL,PS,BI>"|"													{
 																		if(YY_START == BI) {
 																			fprintf(stderr, ANSI_COLOR_RED "Error: I/O redirection is not supported with builtin commands.\n" ANSI_COLOR_RESET);
@@ -252,7 +304,7 @@
 																				parentAlias = NULL;
 																			}
 																			aliased = 0;
-																				
+
 																			return ERROR;
 																		}
 																		BEGIN PS;
