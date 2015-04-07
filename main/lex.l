@@ -135,9 +135,31 @@
 																	}
 
 ^[ \t]*("./")?[-a-zA-Z0-9./_]+										{
+																		trim(yytext);
 																		if(!expandAliases(yytext)) {
 																			yylval.str = strdup(yytext);
-																			trim(yylval.str);
+																			return CMD;
+																		} else {
+																			BEGIN AM;
+																		}
+																	}
+
+^[ \t]*\"([-a-zA-Z0-9.:/_\\?*`~!@#$%^&*()+={}[\]|:;',.<> \t]*(\\\")*)*\"	{
+																		yytext[yyleng - 1] = 0;		//Remove trailing quote.
+																		trim(yytext);				//Remove whitespace before first quote
+																		if(!expandAliases(&yytext[1])) {
+																			yylval.str = strdup(&yytext[1]);
+																			return CMD;
+																		} else {
+																			BEGIN AM;
+																		}
+																	}
+
+^[ \t]*-*([-a-zA-Z0-9.:/_]+(\\[ a-zA-Z0-9<>|"\\&*?]?)*)*			{
+																		trim(yytext);
+																		removeEscapes(yytext, yyleng);
+																		if(!expandAliases(yytext)) {
+																			yylval.str = strdup(yytext);
 																			return CMD;
 																		} else {
 																			BEGIN AM;
@@ -149,6 +171,28 @@
 																			BEGIN 0;
 																			yylval.str = strdup(yytext);
 																			trim(yylval.str);
+																			return CMD;
+																		} else {
+																			BEGIN AM;
+																		}
+																	}
+
+<PS>\"([-a-zA-Z0-9.:/_\\?*`~!@#$%^&*()+={}[\]|:;',.<> \t]*(\\\")*)*\"	{
+																		yytext[yyleng - 1] = 0;		//Remove trailing quote.
+																		trim(yytext);				//Remove whitespace before first quote
+																		if(!expandAliases(&yytext[1])) {
+																			yylval.str = strdup(&yytext[1]);
+																			return CMD;
+																		} else {
+																			BEGIN AM;
+																		}
+																	}
+
+<PS>-*([-a-zA-Z0-9.:/_]+(\\[ a-zA-Z0-9<>|"\\&*?]?)*)*				{
+																		trim(yytext);
+																		removeEscapes(yytext, yyleng);
+																		if(!expandAliases(yytext)) {
+																			yylval.str = strdup(yytext);
 																			return CMD;
 																		} else {
 																			BEGIN AM;
