@@ -14,6 +14,7 @@
 	void removeEscapedQuotes(char *, int);
 
 	char aliased = 0;		//Keep track of whether the last token read was an alias.  If so, the argument is a command.
+	char *parentAlias;		//While expanding aliases, if a nested alias is equal to the original alias (parentAlias), throw an error.
 
 	void yyerror(char *);
 %}
@@ -136,9 +137,12 @@
 
 ^[ \t]*("./")?[-a-zA-Z0-9./_]+										{
 																		trim(yytext);
-																		if(!expandAliases(yytext)) {
+																		int result = expandAliases(yytext);
+																		if(!result) {
 																			yylval.str = strdup(yytext);
 																			return CMD;
+																		} else if(result == -1) {
+																			return ERROR;
 																		} else {
 																			BEGIN AM;
 																		}
@@ -147,9 +151,12 @@
 ^[ \t]*\"([-a-zA-Z0-9.:/_\\?*`~!@#$%^&*()+={}[\]|:;',.<> \t]*(\\\")*)*\"	{
 																		yytext[yyleng - 1] = 0;		//Remove trailing quote.
 																		trim(yytext);				//Remove whitespace before first quote
-																		if(!expandAliases(&yytext[1])) {
+																		int result = expandAliases(&yytext[1]);
+																		if(!result) {
 																			yylval.str = strdup(&yytext[1]);
 																			return CMD;
+																		} else if(result == -1) {
+																			return ERROR;
 																		} else {
 																			BEGIN AM;
 																		}
@@ -158,20 +165,26 @@
 ^[ \t]*-*([-a-zA-Z0-9.:/_]+(\\[ a-zA-Z0-9<>|"\\&*?]?)*)*			{
 																		trim(yytext);
 																		removeEscapes(yytext, yyleng);
-																		if(!expandAliases(yytext)) {
+																		int result = expandAliases(yytext);
+																		if(!result) {
 																			yylval.str = strdup(yytext);
 																			return CMD;
+																		} else if(result == -1) {
+																			return ERROR;
 																		} else {
 																			BEGIN AM;
 																		}
 																	}
 
 <PS>("./")?[-a-zA-Z0-9./_]+											{
-																		if(!expandAliases(yytext)) {
+																		int result = expandAliases(yytext);
+																		if(!result) {
 																			BEGIN 0;
 																			yylval.str = strdup(yytext);
 																			trim(yylval.str);
 																			return CMD;
+																		} else if(result == -1) {
+																			return ERROR;
 																		} else {
 																			BEGIN AM;
 																		}
@@ -180,9 +193,12 @@
 <PS>\"([-a-zA-Z0-9.:/_\\?*`~!@#$%^&*()+={}[\]|:;',.<> \t]*(\\\")*)*\"	{
 																		yytext[yyleng - 1] = 0;		//Remove trailing quote.
 																		trim(yytext);				//Remove whitespace before first quote
-																		if(!expandAliases(&yytext[1])) {
+																		int result = expandAliases(&yytext[1]);
+																		if(!result) {
 																			yylval.str = strdup(&yytext[1]);
 																			return CMD;
+																		} else if(result == -1) {
+																			return ERROR;
 																		} else {
 																			BEGIN AM;
 																		}
@@ -191,9 +207,12 @@
 <PS>-*([-a-zA-Z0-9.:/_]+(\\[ a-zA-Z0-9<>|"\\&*?]?)*)*				{
 																		trim(yytext);
 																		removeEscapes(yytext, yyleng);
-																		if(!expandAliases(yytext)) {
+																		int result = expandAliases(yytext);
+																		if(!result) {
 																			yylval.str = strdup(yytext);
 																			return CMD;
+																		} else if(result == -1) {
+																			return ERROR;
 																		} else {
 																			BEGIN AM;
 																		}
@@ -204,11 +223,15 @@
 																			BEGIN 0;
 																			yyless(0);
 																		} else {
-																			if(!expandAliases(yytext)) {
+																			int result = expandAliases(yytext);
+																			if(!result) {
 																				BEGIN 0;
 																				yylval.str = strdup(yytext);
 																				trim(yylval.str);
 																				return CMD;
+																			} else if(result == -1) {
+																				BEGIN 0;
+																				return ERROR;
 																			}
 																		}
 																	}
@@ -335,7 +358,8 @@ void trim(char *command) {
 }
 
 /**
-* Check if a command is an alias.  If so handle it and return 1; otherwise, return 0.
+* Check if a command is an alias.  If so handle it and return 1; otherwise, return 0.  If an
+* infinite loop is detected, print error and return -1.
 */
 int expandAliases(char *command) {
 	if(num_aliases == 0) {
@@ -351,6 +375,16 @@ int expandAliases(char *command) {
 			//Add chars from the expanded command to the input stream for Lex in reverse order (unput chars are added to the beginning of the stream).
 			unput(' ');
 			int len = strlen(curr->cmd) - 1;
+
+			if(!aliased) {
+				parentAlias = (char *) malloc((len + 1) * sizeof(char));
+				strcpy(parentAlias, curr->alias);
+			} else if(strcmp(parentAlias, curr->cmd) == 0) {
+				fprintf(stderr, ANSI_COLOR_RED "Error: %s creates an infinite loop.  Fix before executing.\n", parentAlias);
+				free(parentAlias);
+				return -1;
+			}
+
 			while(len >= 0) {
 				unput(curr->cmd[len--]);
 			}
