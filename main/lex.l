@@ -1,6 +1,7 @@
 %{
 	#include <dirent.h>
 	#include <fnmatch.h>
+	#include <pwd.h>
 	#include <stdlib.h>
 	#include <string.h>
 	#include <stdio.h>
@@ -10,6 +11,7 @@
 
 	void trim(char *);
 	int expandAliases(char *);
+	int expandFileName(char *, int);
 	void removeEscapes(char *, int);
 	void removeEscapedQuotes(char *, int);
 
@@ -411,6 +413,22 @@
 																		return EXPANDED_USER;
 																	}
 
+<*>([-a-zA-Z0-9./_%$#@!^=+,]*(\\[ &]+)?)+\x1B						{
+																		yylval.str = strdup(yytext);
+																		removeEscapes(yylval.str, yyleng);
+																		if(expandFileName(yylval.str, yyleng) == 0)
+																			return ARG;
+																		else
+																			return ERROR;
+																	}
+
+<*>~[-a-zA-Z0-9_]+([-a-zA-Z0-9./_%$#@!^=+,]*(\\[ &]+)?)*\x1B		{
+																		// yylval.str = strdup(yytext);
+																		// removeEscapes(yylval.str);
+																		// expandUserFileName(yylval.str);
+																		// return ARG;
+																	}
+
 <*>[ \t]+															/* ignore white space */;
 
 <*>.																{
@@ -505,6 +523,157 @@ int expandAliases(char *command) {
 	}
 
 	return !(i == num_aliases);
+}
+
+/**
+* Expand partially typed files.  If only one match was found, place this value in filename and
+* return 0.  If no matches were found, return 1.  If multiple matches were found, print them
+* to the screen and return 1.
+*/
+int expandFileName(char *filename, int fileLength) {
+	char return_value = 1;
+	filename[fileLength - 1] = 0;	//Ignore `esc` character
+
+	//If the filename contains a path, find the last '/'
+	int i = 0, j = -1;
+	while(filename[i]) {
+		if(filename[i] == '/') {
+			j = i;
+		}
+		i++;
+	}
+
+	char *directory = (char *) malloc(1 * sizeof(char));
+	*directory = '.';
+
+	char *pattern = (char *) malloc((strlen(filename + 1) + 1) * sizeof(char));
+	strcpy(pattern, filename);
+	strcat(pattern, "*");		//Add wildcard to the end of the file path.
+	if(j >= 0) {
+		free(directory);
+		directory = (char *) malloc((filename - &filename[j] + 2) * sizeof(char));
+		strncpy(directory, filename, j + 1);
+		directory[j+2] = 0;
+
+		free(pattern);
+		pattern = (char *) malloc(strlen((&filename[j]) + 1) * sizeof(char));
+		strcpy(pattern, &filename[j + 1]);
+		strcat(pattern, "*");
+	}
+
+	free(filename);
+
+	DIR *dir;
+	if((dir = opendir(directory)) == NULL) {
+		fprintf(stderr, ANSI_COLOR_RED "Error: Directory %s could not be opened.\n" ANSI_COLOR_RESET, directory);
+		return -1;
+	}
+
+	struct dirent *file;
+	i = 0;
+	while((file = readdir(dir)) != NULL) {
+		if(fnmatch(pattern, file->d_name, FNM_PATHNAME | FNM_PERIOD) == 0) {
+			//Match
+			if(i == 0) {
+				filename = strdup(file->d_name);
+				yyleng = strlen(filename);
+
+				return_value = 0;
+			} else {
+				if(i == 1) {
+					fprintf(stderr, ANSI_COLOR_GREEN "%s\t", filename);
+				}
+
+				if((i % 3) == 0) {
+					fprintf(stderr, ANSI_COLOR_GREEN "%s\n", file->d_name);
+				} else {
+					fprintf(stderr, ANSI_COLOR_GREEN "%s\t", file->d_name);
+				}
+
+				return_value = 1;
+			}
+
+			i++;
+		}
+	}
+
+	closedir(dir);
+
+	if(i > 1 && i % 3) {
+		fprintf(stderr, ANSI_COLOR_RED "\n\nMultiple files match your query.  Please use one of the files above.\n");
+	} else if(i > 1) {
+		fprintf(stderr, ANSI_COLOR_RED "\nMultiple files match your query.  Please use one of the files above.\n");
+	}
+
+	return return_value;
+}
+
+/**
+* Expand partially typed user home files.  If only one match was found, obtain the home directory
+* for this user and place this value in filename and return 0.  If no matches were found,
+* return 1.  If multiple matches were found, print them to the screen and return 1.
+*/
+int expandUserFileName(char *filename, int fileLength) {
+	char return_value = 1;
+	filename[fileLength - 1] = 0;		//Ignore `esc` character
+
+	//If the filename contains a path, find the first '/'
+	int i = 0;
+	while(filename[i] != '/' && filename[i] != 0) {
+		i++;
+	}
+
+	char *directory = strdup(&filename[i]);
+
+	char pattern[i + 1];
+	strncpy(pattern, &filename[1], i - 1);
+	pattern[i] = 0;
+	strcat(pattern, "*");		//Add wildcard to the end of the file path.
+
+	free(filename);
+
+	i = 0;
+	struct passwd *user;
+	struct passwd *first;
+	while((user = getpwent()) != NULL) {
+		if(fnmatch(pattern, user->pw_name, FNM_PATHNAME | FNM_PERIOD) == 0) {
+			//Match
+			if(i == 0) {
+				first = user;
+
+				return_value = 0;
+			} else {
+				if(i == 1) {
+					fprintf(stderr, ANSI_COLOR_GREEN "%s\t", first->pw_name);
+				}
+
+				if((i % 3) == 0) {
+					fprintf(stderr, ANSI_COLOR_GREEN "%s\n", user->pw_name);
+				} else {
+					fprintf(stderr, ANSI_COLOR_GREEN "%s\t", user->pw_name);
+				}
+
+				return_value = 1;
+			}
+
+			i++;
+		}
+	}
+
+	if(i == 1) {
+		filename = strdup(first->pw_dir);
+		yyleng = strlen(filename);
+	}
+
+	endpwent();
+
+	if(i > 1 && i % 3) {
+		fprintf(stderr, ANSI_COLOR_RED "\n\nMultiple users match your query.  Please use one of the users above.\n");
+	} else if(i > 1) {
+		fprintf(stderr, ANSI_COLOR_RED "\nMultiple users match your query.  Please use one of the users above.\n");
+	}
+
+	return return_value;
 }
 
 /**
