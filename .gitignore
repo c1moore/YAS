@@ -3,7 +3,8 @@ main/lex
 main/lex.yy.c
 main/y.output
 main/y.tab.*
-main/yas
+yas
+testdisk.log
 main/yas_grammar.tab.*
 commands/*.o
 commands/cd
