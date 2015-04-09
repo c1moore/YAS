@@ -399,10 +399,11 @@ int main() {
 
 					//Wait for all children to DIE.
 					for(j = 0; j < num_cmds; j++) {
-						int status = wait((int *) 0);
+						int status[1];
+						waitpid((pid_t) child_pids[j], status, WUNTRACED);
 
 						if(WIFSIGNALED(status)) {
-							int sig_num = WTERMSIG(status);
+							int sig_num = WTERMSIG(*status);
 							switch(sig_num) {
 								case SIGSEGV:
 									fprintf(stderr, "Crap... That wasn't supposed to happen.\n\nSegmentation fault (something probably tried accessing memory that didn't belong to it).\n");
@@ -415,6 +416,34 @@ int main() {
 									break;
 								case SIGFPE:
 									fprintf(stderr, "Floating point error.\n");
+									break;
+								case SIGSYS:
+									fprintf(stderr, "Bad system call.\n");
+									break;
+							}
+
+							#ifdef WCOREDUMP
+								if(WCOREDUMP(status)) {
+									fprintf(stderr, "Core dumped.\n");
+								}
+							#endif
+						}
+
+						if(WIFSTOPPED(status)) {
+							int sig_num = WSTOPSIG(*status);
+							switch(sig_num) {
+								case SIGSEGV:
+									fprintf(stderr, "Crap... That wasn't supposed to happen.\n\nSegmentation fault (something probably tried accessing memory that didn't belong to it).\n");
+									break;
+								case SIGILL:
+									fprintf(stderr, "Illegal instruction (something tried executing something that was not a function).\n");
+									break;
+								case SIGBUS:
+									fprintf(stderr, "Invalid pointer dereferenced (make sure pointers actually point to something before freeing them).\n");
+									break;
+								case SIGFPE:
+									fprintf(stderr, "Floating point error.\n");
+									break;
 								case SIGSYS:
 									fprintf(stderr, "Bad system call.\n");
 									break;
