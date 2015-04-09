@@ -156,33 +156,39 @@ command :
 															YYACCEPT;
 														}
 			| CMD arguments io_redirects ERROR end_of_command	{
+															reinitializeGlobals();
 															yerrno = YAS_ERR;
 
 															YYABORT;
 														}
 			| CMD io_redirects_no_null arguments ERROR end_of_command	{
+															reinitializeGlobals();
 															yerrno = YAS_ERR;
 
 															YYABORT;
 														}
 			| BUILTIN arguments ERROR end_of_command_null		{
+															reinitializeGlobals();
 															yerrno = YAS_ERR;
 
 															YYABORT;
 														}
 			| arguments io_redirects ERROR end_of_command		{
+															reinitializeGlobals();
 															yerrno = YAS_ERR;
 
 															YYABORT;
 														}
 			| arguments_no_null io_redirects end_of_command		{
 															fprintf(stderr, ANSI_COLOR_RED "Error: No command found.  Commands cannot contain metacharacters.\n" ANSI_COLOR_RESET);
+															reinitializeGlobals();
 															yerrno = YAS_ERR;
 
 															YYABORT;
 														}
 			| io_redirects_no_null arguments end_of_command		{
 															fprintf(stderr, ANSI_COLOR_RED "Error: No command found.  Commands cannot contain metacharacters.\n" ANSI_COLOR_RESET);
+															reinitializeGlobals();
 															yerrno = YAS_ERR;
 
 															YYABORT;
