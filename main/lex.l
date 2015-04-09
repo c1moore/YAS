@@ -253,7 +253,7 @@
 																			int result = expandAliases(&yytext[1]);
 																			if(!result) {
 																				BEGIN 0;
-																				yylval.str = strdup(yytext);
+																				yylval.str = strdup(&yytext[1]);
 
 																				if(parentAlias != NULL) {
 																					free(parentAlias);
