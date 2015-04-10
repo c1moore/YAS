@@ -512,7 +512,7 @@ void init_yas(void) {
 	sigaction(SIGTERM, &killCatcher, NULL);
 	sigaction(SIGQUIT, &killCatcher, NULL);
 	sigaction(SIGHUP, &killCatcher, NULL);
-	sigaction(SIGSTOP, &killCatcher, NULL);
+	sigaction(SIGTSTP, &killCatcher, NULL);
 
 	//Catch program errors
 	memset(&errCatcher, 0, sizeof(errCatcher));
