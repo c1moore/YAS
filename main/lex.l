@@ -404,13 +404,20 @@
 
 ">>&"																return OUT_ERR_RA;
 
-<INITIAL,BI>~("/"[-a-zA-Z0-9./_]*)?									{
+<INITIAL,BI>~"/"(("/"?[-a-zA-Z0-9._]*(\\[ <>|"\\&]+)*)?)*			{
+																		yylval.str = strdup(yytext);
+																		removeEscapes(yylval.str, yyleng);
+																		return EXPANDED_FILE;
+																	}
+
+<INITIAL,BI>~														{
 																		yylval.str = strdup(yytext);
 																		return EXPANDED_FILE;
 																	}
 
-<INITIAL,BI>~[-a-zA-Z0-9_]+"/"?[-a-zA-Z0-9./_]*						{
+<INITIAL,BI>~[-a-zA-Z0-9_]+("/"?[-a-zA-Z0-9._]*(\\[ <>|"\\&]+)?)*	{
 																		yylval.str = strdup(yytext);
+																		removeEscapes(yylval.str, yyleng);
 																		return EXPANDED_USER;
 																	}
 
