@@ -751,7 +751,7 @@ int expandWildcards(char *argument) {
 	strcpy(pattern, argument);
 	if(j >= 0) {
 		free(directory);
-		directory = (char *) malloc((argument - &argument[j] + 2) * sizeof(char));
+		directory = (char *) malloc((j + 2) * sizeof(char));
 		strncpy(directory, argument, j + 1);
 		directory[j+2] = 0;
 
@@ -776,6 +776,14 @@ int expandWildcards(char *argument) {
 			int i = strlen(file->d_name) - 1;
 			while(i >= 0) {
 				unput(file->d_name[i--]);
+			}
+
+			if(directory[0] != '/' && file->d_name[strlen(file->d_name) - 1])
+				unput('/');
+
+			i = strlen(directory) - 1;
+			while(i >= 0) {
+				unput(directory[i--]);
 			}
 
 			unput('"');
