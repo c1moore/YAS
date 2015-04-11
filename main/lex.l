@@ -327,14 +327,14 @@
 
 																		return ARG;
 																	}
-<INITIAL,BI>-*([-a-zA-Z0-9.:/_]+(\\[ a-zA-Z0-9<>|"\\&*?]?)*)*		{
+<INITIAL,BI>-*([-a-zA-Z0-9.:/_+=()^%$#@!`,]+(\\[ a-zA-Z0-9<>|"\\&*?]?)*)*		{
 																		yylval.str = strdup(yytext);
 
 																		removeEscapes(yylval.str, yyleng);
 
 																		return ARG;
 																	}
-<INITIAL,BI>([-a-zA-Z0-9.:/_]*[*?]+(\\[ a-zA-Z0-9<>|"\\&*?])*)+		{
+<INITIAL,BI>([-a-zA-Z0-9.:/_+=()^%$#@!`,]*[*?]+(\\[ a-zA-Z0-9<>|"\\&*?])*)+		{
 																		int matches = expandWildcards(yytext);
 																		if(matches == -1) {
 																			BEGIN 0;
@@ -406,7 +406,7 @@
 
 ">>&"																return OUT_ERR_RA;
 
-<INITIAL,BI>~"/"(("/"?[-a-zA-Z0-9._]*(\\[ <>|"\\&]+)*)?)*			{
+<INITIAL,BI>~"/"(("/"?[-a-zA-Z0-9._+=()^%$#@!`,]*(\\[ <>|"\\&]+)*)?)*			{
 																		yylval.str = strdup(yytext);
 																		removeEscapes(yylval.str, yyleng);
 																		return EXPANDED_FILE;
@@ -417,7 +417,7 @@
 																		return EXPANDED_FILE;
 																	}
 
-<INITIAL,BI>~[-a-zA-Z0-9_]+("/"?[-a-zA-Z0-9._]*(\\[ <>|"\\&]+)?)*	{
+<INITIAL,BI>~[-a-zA-Z0-9_+=()^%$#@!`,]+("/"?[-a-zA-Z0-9._+=()^%$#@!`,]*(\\[ <>|"\\&]+)?)*	{
 																		yylval.str = strdup(yytext);
 																		removeEscapes(yylval.str, yyleng);
 																		return EXPANDED_USER;

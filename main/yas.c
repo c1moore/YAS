@@ -402,7 +402,7 @@ int main() {
 						int status[1];
 						waitpid((pid_t) child_pids[j], status, WUNTRACED);
 
-						if(WIFSIGNALED(status)) {
+						if(WIFSIGNALED(*status)) {
 							int sig_num = WTERMSIG(*status);
 							switch(sig_num) {
 								case SIGSEGV:
@@ -429,7 +429,7 @@ int main() {
 							#endif
 						}
 
-						if(WIFSTOPPED(status)) {
+						if(WIFSTOPPED(*status)) {
 							int sig_num = WSTOPSIG(*status);
 							switch(sig_num) {
 								case SIGSEGV:

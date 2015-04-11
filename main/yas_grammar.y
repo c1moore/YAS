@@ -475,6 +475,9 @@ void reallocArgs() {
 	* exponent.
 	*/
 	new_cmd.C_ARGS = (char *) realloc(new_cmd.C_ARGS, ARG_LENGTH * (int) pow(RESIZE_RATIO, num_resizes) * sizeof(char));
+	
+	// int new_loc = ARG_LENGTH * (int) pow(RESIZE_RATIO, num_resizes - 1);
+	// memset(&new_cmd.C_ARGS[new_loc], 0, ARG_LENGTH * (int) pow(RESIZE_RATIO, num_resizes) - new_loc);
 
 	//If the location new_cmd.C_ARGS was pointing moved, all the pointers in C_ARGS_PNTR need to be updated.
 	if(old_ptr != new_cmd.C_ARGS) {
@@ -491,6 +494,9 @@ void reallocArgs() {
 
 void reallocArgsPntr() {
 	new_cmd.C_ARGS_PNTR = (char**) realloc(new_cmd.C_ARGS_PNTR, INIT_ARGS * (int) pow(RESIZE_RATIO, ++pntr_resizes) * sizeof(char *));
+	
+	int new_loc = INIT_ARGS * (int) pow(RESIZE_RATIO, pntr_resizes - 1);
+	memset(&new_cmd.C_ARGS_PNTR[new_loc] - 1, 0, INIT_ARGS * (int) pow(RESIZE_RATIO, pntr_resizes) - new_loc);
 }
 
 void replaceTilde(char *filePath) {
@@ -579,8 +585,8 @@ void addArg(char *dest, char *src) {
 		i++;
 	}
 
-	//Now add a NULL at the end.
-	int length = &dest[i] - new_cmd.C_ARGS;
+	//Now add two NULLs at the end.
+	int length = &dest[i + 1] - new_cmd.C_ARGS;
 	char *old = new_cmd.C_ARGS;
 
 	if(length >= (ARG_LENGTH *  (int) pow(RESIZE_RATIO, num_resizes))) {
@@ -592,6 +598,7 @@ void addArg(char *dest, char *src) {
 	}
 
 	dest[i] = 0;
+	dest[i+1] = 0;
 }
 
 void yyerror(char *err) {
