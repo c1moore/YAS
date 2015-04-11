@@ -10,7 +10,7 @@ int env(int argc, char *argv[]) {
 	int set;
 	if (argc == 3) {
 		set = setenv(argv[1], argv[2], 0);
-		fprintf(stderr, "setenv set" );
+		fprintf(stderr, "%s = %s", argv[1], argv[2] );
 	}
 	else {
 		printf("Error: Invalid arguments. setenv takes at most 3 arguments.\n");	//displays error if more than two arg
