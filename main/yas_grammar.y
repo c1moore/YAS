@@ -468,12 +468,13 @@ void checkAndAlloc(void) {
 void reallocArgs() {
 	char *old_ptr = new_cmd.C_ARGS;		//Keep track of where new_cmd.C_ARGS was originally.
 	num_resizes++;						//Increment number of times the array was resized.
-
+	
 	/**
 	* Since RESIZE_RATIO is 2, we could use bitwise shifting to obtain the value of RESIZE_RATIO^(num_resizes + 1),
 	* but since RESIZE_RATIO is a macro and is not guaranteed to remain 2, we will use a function to calculate the
 	* exponent.
 	*/
+
 	new_cmd.C_ARGS = (char *) realloc(new_cmd.C_ARGS, ARG_LENGTH * (int) pow(RESIZE_RATIO, num_resizes) * sizeof(char));
 
 	//If the location new_cmd.C_ARGS was pointing moved, all the pointers in C_ARGS_PNTR need to be updated.

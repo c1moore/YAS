@@ -753,19 +753,22 @@ int expandWildcards(char *argument) {
 		i++;
 	}
 
-	char *directory = (char *) malloc(2 * sizeof(char));
-	directory[0] = '.';
-	directory[1] = 0;
+	char *directory;
+	char *pattern; 
 
-	char *pattern = (char *) malloc((strlen(argument) + 1) * sizeof(char));
-	strcpy(pattern, argument);
-	if(j >= 0) {
-		free(directory);
+	if(j == -1) {
+		directory = (char *) malloc(2 * sizeof(char));
+		directory[0] = '.';
+		directory[1] = 0;
+
+		pattern = (char *) malloc((strlen(argument) + 1) * sizeof(char));
+		strcpy(pattern, argument);
+	}
+	else {
 		directory = (char *) malloc((j + 2) * sizeof(char));
 		strncpy(directory, argument, j + 1);
-		directory[j+2] = 0;
+		directory[j+1] = 0;
 
-		free(pattern);
 		pattern = (char *) malloc(strlen(&argument[j]) * sizeof(char));
 		strcpy(pattern, &argument[j + 1]);
 	}
