@@ -44,9 +44,7 @@ int alias(int argc, char *argv[]) {
 
 		curr = alias_head;	//gets alias tab head
 
-		/*goes theough aliastab until it reaches the end of the list. If
-		at anypoint it catches either the inputed command or alias has been 
-		taken it returns an error and alerts the user*/
+		/*goes theough aliastab until it reaches the end of the list.*/
 		while (curr->next != NULL) {
 			/*if(strcmp(argv[2],curr->cmd) == 0) {
 				fprintf(stderr,"Command %s is already set with alias %s",argv[2],curr->alias);
