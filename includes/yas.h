@@ -25,6 +25,7 @@
 	#define BUILTIN_UNALIAS	6
 	#define BUILTIN_UNENV	7
 	#define BUILTIN_DEBUG	8
+	#define BUILTIN_HELP	9
 
 	/**
 	* Define the possible values for garbage_collected.

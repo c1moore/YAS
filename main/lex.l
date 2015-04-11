@@ -138,6 +138,20 @@
 																		return BUILTIN;
 																	}
 
+<INITIAL>^[ \t]*help												{
+																		BEGIN BI;
+																		yylval.str = strdup("help");
+																		builtin = BUILTIN_HELP;
+																		return BUILTIN;
+																	}
+
+<PS>help															{
+																		BEGIN BI;
+																		yylval.str = strdup("help");
+																		builtin = BUILTIN_HELP;
+																		return BUILTIN;
+																	}
+
 ^[ \t]*("./")?[-a-zA-Z0-9./_]+										{
 																		trim(yytext);
 																		int result = expandAliases(yytext);
@@ -374,7 +388,7 @@
 																			return ERROR;
 																		}
 																	}
-<INITIAL,BI>"${"(-*([-a-zA-Z0-9.:/_()?*`~!@#$%^&=+\]|;',<> \t]+(\\[ a-zA-Z0-9<>|"\\&?*{}}])?)*)"}"	{
+<INITIAL,BI>"${"([-a-zA-Z0-9.:/_()?*`~!@#$%^&=+\]|;',<> \t]+)"}"	{
 																		yytext[yyleng - 1] = 0;					/* Remove the trailing '}' */
 																		int argLength = yyleng - 3;				/* Length of arg as seen by replaceEnvVar */
 
@@ -742,6 +756,8 @@ void removeEscapedQuotes(char *arg, int len) {
 int expandWildcards(char *argument) {
 	char return_value = 1;
 
+	fprintf(stderr, "%s\n", argument);
+
 	//If the argument contains a path, find the last '/'
 	int i = 0, j = -1;
 	while(argument[i]) {
@@ -766,6 +782,9 @@ int expandWildcards(char *argument) {
 		pattern = (char *) malloc(strlen(&argument[j]) * sizeof(char));
 		strcpy(pattern, &argument[j + 1]);
 	}
+
+	fprintf(stderr, "%s\n", directory);
+	fprintf(stderr, "%s\n", pattern);
 
 	DIR *dir;
 	if((dir = opendir(directory)) == NULL) {

@@ -103,6 +103,11 @@ int main() {
 							//An error occurred.
 						}
 						break;
+					case BUILTIN_HELP:
+						if(help(cmdtab[0].C_NARGS, cmdtab[0].C_ARGS_PNTR)) {
+							//An error occurred.
+						}
+						break;
 					default:
 						fprintf(stderr, "An error occurred recognizing your command.  Check your environmental variables and aliases to make sure you are not referencing a builtin command mistakenly.\n");
 						break;
@@ -153,8 +158,8 @@ int main() {
 						}
 					}
 					if(cmdtab[i].C_ERR.field == C_IO_FILE) {
-						//If the file doesn't exist or if the file should be overwritten use creat.
-						if(access(cmdtab[i].C_ERR.io.file, F_OK) || cmdtab[i].C_INPUT.concat == C_IO_OW) {
+						//If the file doesn't exist use creat.
+						if(access(cmdtab[i].C_ERR.io.file, F_OK)) {
 							iofiles[1] = creat(cmdtab[i].C_ERR.io.file, 0000666);
 						}else if(access(cmdtab[i].C_ERR.io.file, W_OK)) {
 							fprintf(stderr, "I/O Error: Cannot write to error file: %s.\n", cmdtab[i].C_ERR.io.file);
@@ -662,7 +667,7 @@ int getCommands() {
 				fprintf(stderr, ANSI_COLOR_RED "\n%s", "For more help, type help io.");
 				return status;
 			case USER_ERR:
-				fprintf(stderr, ANSI_COLOR_RED "\n%s", "For more help, type help user.");
+				fprintf(stderr, ANSI_COLOR_RED "\n%s", "For more help, type help.");
 				return status;
 			case ARG_ERR:
 				fprintf(stderr, ANSI_COLOR_RED "\n%s", "For more help, type help arg.");
@@ -871,25 +876,25 @@ void killChildren(int sig_num) {
 void warnErr(int sig_num) {
 	//Only execute if in the parent process.
 	if(parent_pid = getpid()) {
-		switch(sig_num) {
-			case SIGSEGV:
-				fprintf(stderr, "Crap... That wasn't supposed to happen.\n\nSegmentation fault (something probably tried accessing memory that didn't belong to it).\n");
-				break;
-			case SIGILL:
-				fprintf(stderr, "Illegal instruction (something tried executing something that was not a function).\n");
-				break;
-			case SIGBUS:
-				fprintf(stderr, "Invalid pointer dereferenced (make sure pointers actually point to something before freeing them).\n");
-				break;
-			case SIGFPE:
-				fprintf(stderr, "Floating point error.\n");
-			case SIGSYS:
-				fprintf(stderr, "Bad system call.\n");
-				break;
-			default:
-				fprintf(stderr, "Error number: %d.  (Check program signal errors for more information)\n", sig_num);
-				break;
-		}
+		// switch(sig_num) {
+		// 	case SIGSEGV:
+		// 		fprintf(stderr, "Crap... That wasn't supposed to happen.\n\nSegmentation fault (something probably tried accessing memory that didn't belong to it).\n");
+		// 		break;
+		// 	case SIGILL:
+		// 		fprintf(stderr, "Illegal instruction (something tried executing something that was not a function).\n");
+		// 		break;
+		// 	case SIGBUS:
+		// 		fprintf(stderr, "Invalid pointer dereferenced (make sure pointers actually point to something before freeing them).\n");
+		// 		break;
+		// 	case SIGFPE:
+		// 		fprintf(stderr, "Floating point error.\n");
+		// 	case SIGSYS:
+		// 		fprintf(stderr, "Bad system call.\n");
+		// 		break;
+		// 	default:
+		// 		fprintf(stderr, "Error number: %d.  (Check program signal errors for more information)\n", sig_num);
+		// 		break;
+		// }
 	} else {
 		//If in a child process, do the default action.
 		SIG_DFL(sig_num);
