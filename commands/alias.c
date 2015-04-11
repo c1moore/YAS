@@ -30,9 +30,11 @@ int alias(int argc, char *argv[]) {
 	list. Once completed it will print the alias and command added
 	in the form of alias = cmd */
 	else if (argc == 3) {
-		/*if(getLength(argv[2]) > CMD_LENGTH) {
-			exit(0);
-		}*/
+		//makes sure that the cmd being set is not longer than 50 characters
+		if(strlen(argv[2]) > 50) {
+			fprintf(stderr,"Command is to long. Commands can hace at most 50 characters.");
+			return(ARG_ERR);
+		}
 
 		//stops aliases being set to themselves
 		if(strcmp(argv[1],argv[2]) == 0) {
@@ -82,11 +84,3 @@ int alias(int argc, char *argv[]) {
 		return(ARG_ERR);
 	}
 }
-
-/*int getLength(char *argv) {
-	int length = 0;
-	while(argv) {
-		length++;
-	}
-	return length;
-}*/
