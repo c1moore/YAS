@@ -7,16 +7,17 @@
 
 int help(int argc, char *argv[]) {
 	int cd;
-	char *cmds[] = {"1. alias", "2. bye", " 3. cd", "4. printenv", "5. setenv", "6. unalias", "7. unsetenv"};
+	char * cmds[] = {"1. alias", "2. bye", " 3. cd", "4. printenv", "5. setenv", "6. unalias", "7. unsetenv"};
+	int cmdsLength = sizeof(cmds)/sizeof(const char *);
 	//if cd has no arguments go to the home dir else go to the directort in the argument
-	if(argc == 1) {
+	if(argc) {
 		int cmd;
 		printf("Select a command to get help on:\n");
-		while(cmds) {
-			printf("%s\n");
-			cmds++
+		int i;
+		for(i=0;i<cmdsLength;i++) {
+			printf("%s\n",cmds[i]);
 		}
-		scanf("%d",cmd);
+		scanf("%d",&cmd);
 		printf("Command usage:\n");
 		switch (cmd) {
 			case 1:
