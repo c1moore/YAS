@@ -334,9 +334,10 @@
 
 																		return ARG;
 																	}
-<INITIAL,BI>([-a-zA-Z0-9.:/*?_]+(\\[ a-zA-Z0-9<>|"\\&*?]?)*)*		{
+<INITIAL,BI>([-a-zA-Z0-9.:/_]*[*?]+(\\[ a-zA-Z0-9<>|"\\&*?])*)+		{
 																		int matches = expandWildcards(yytext);
 																		if(matches == -1) {
+																			BEGIN 0;
 																			if(parentAlias != NULL) {
 																				free(parentAlias);
 																				parentAlias = NULL;
@@ -347,6 +348,7 @@
 																		} else if(matches == 1) {
 																			fprintf(stderr, ANSI_COLOR_RED "Error: No files found that match %s\n" ANSI_COLOR_RESET, yytext);
 
+																			BEGIN 0;
 																			if(parentAlias != NULL) {
 																				free(parentAlias);
 																				parentAlias = NULL;
@@ -744,15 +746,16 @@ int expandWildcards(char *argument) {
 
 	//If the argument contains a path, find the last '/'
 	int i = 0, j = -1;
-	while(argument[i]) {
+	while(argument[i] && argument[i] != '*') {
 		if(argument[i] == '/') {
 			j = i;
 		}
 		i++;
 	}
 
-	char *directory = (char *) malloc(1 * sizeof(char));
-	*directory = '.';
+	char *directory = (char *) malloc(2 * sizeof(char));
+	directory[0] = '.';
+	directory[1] = 0;
 
 	char *pattern = (char *) malloc((strlen(argument) + 1) * sizeof(char));
 	strcpy(pattern, argument);
@@ -785,7 +788,7 @@ int expandWildcards(char *argument) {
 				unput(file->d_name[i--]);
 			}
 
-			if(directory[0] != '/' && file->d_name[strlen(file->d_name) - 1])
+			if(directory[0] != '/' && file->d_name[strlen(file->d_name) - 1] != '/')
 				unput('/');
 
 			i = strlen(directory) - 1;
@@ -798,6 +801,9 @@ int expandWildcards(char *argument) {
 			return_value = 0;
 		}
 	}
+
+	free(directory);
+	free(pattern);
 
 	closedir(dir);
 

@@ -340,7 +340,7 @@ argument :
 
 							  									while(last_arg[i])	i++;		//Find where the last argument ends.
 
-																if(new_cmd.C_NARGS >= INIT_ARGS) {
+																if(new_cmd.C_NARGS >= INIT_ARGS * (int) pow(RESIZE_RATIO, pntr_resizes)) {
 																	reallocArgsPntr();
 																}
 
@@ -360,7 +360,7 @@ argument :
 
 							  									while(last_arg[i])	i++;		//Find where the last argument ends.
 
-																if(new_cmd.C_NARGS >= INIT_ARGS) {
+																if(new_cmd.C_NARGS >= INIT_ARGS * (int) pow(RESIZE_RATIO, pntr_resizes)) {
 																	reallocArgsPntr();
 																}
 
@@ -382,7 +382,7 @@ argument :
 
 							  									while(last_arg[i])	i++;		//Find where the last argument ends.
 
-																if(new_cmd.C_NARGS >= INIT_ARGS) {
+																if(new_cmd.C_NARGS >= INIT_ARGS * (int) pow(RESIZE_RATIO, pntr_resizes)) {
 																	reallocArgsPntr();
 																}
 
@@ -490,7 +490,7 @@ void reallocArgs() {
 }
 
 void reallocArgsPntr() {
-	new_cmd.C_ARGS_PNTR = (char**) realloc(new_cmd.C_ARGS_PNTR, INIT_ARGS * RESIZE_RATIO * (++pntr_resizes + 1) * sizeof(char **));
+	new_cmd.C_ARGS_PNTR = (char**) realloc(new_cmd.C_ARGS_PNTR, INIT_ARGS * (int) pow(RESIZE_RATIO, ++pntr_resizes) * sizeof(char *));
 }
 
 void replaceTilde(char *filePath) {
@@ -559,13 +559,14 @@ void addArg(char *dest, char *src) {
 
 	new_cmd.C_NARGS++;
 
+	int distance = dest - new_cmd.C_ARGS;
 	int i = 0;
 	while(src[i]) {
 		//If the arguments array is not long enough, we need to reallocate space to it
-		int distance = &dest[i] - new_cmd.C_ARGS;
+		int length = &dest[i] - new_cmd.C_ARGS;
 		char *old = new_cmd.C_ARGS;
 
-		if(distance >= (ARG_LENGTH * (int) pow(RESIZE_RATIO, num_resizes))) {
+		if(length >= (ARG_LENGTH * (int) pow(RESIZE_RATIO, num_resizes))) {
 			reallocArgs();
 
 			if(old != new_cmd.C_ARGS) {
@@ -579,10 +580,10 @@ void addArg(char *dest, char *src) {
 	}
 
 	//Now add a NULL at the end.
-	int distance = &dest[i] - new_cmd.C_ARGS;
+	int length = &dest[i] - new_cmd.C_ARGS;
 	char *old = new_cmd.C_ARGS;
 
-	if(distance >= (ARG_LENGTH * RESIZE_RATIO * (num_resizes + 1))) {
+	if(length >= (ARG_LENGTH *  (int) pow(RESIZE_RATIO, num_resizes))) {
 		reallocArgs();
 
 		if(old != new_cmd.C_ARGS) {
