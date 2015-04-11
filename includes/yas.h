@@ -72,15 +72,15 @@
 	#define C_IO_OUT_INIT	{YAS_STDOUT, C_IO_POINTER, C_IO_NA}
 	#define C_IO_ERR_INIT	{YAS_STDERR, C_IO_POINTER, C_IO_NA}
 
-	#define YAS_BANNER_1	ANSI_COLOR_CYAN "       YYYY     YYYY    AAAA      SSSS     !!!!!\n"
-	#define YAS_BANNER_2	"        YYY     YYY     AA AA    SS  SSS    !!!!!\n"
-	#define YAS_BANNER_3	"         YYY   YYY      AA  AA   SSS         !!!!!\n"
-	#define YAS_BANNER_4	"          YYY YYY       AA   AA   SSSS        !!!!!\n"
-	#define YAS_BANNER_5	"           YYYYY        AA    AA     SSSS      !!!!!\n"
-	#define YAS_BANNER_6	"            YYYY        AAAAAAAAA      SSSS     !!!!!\n"
-	#define YAS_BANNER_7	"             YYYY       AAAAAAAAAA  SSS SSSS\n"
-	#define YAS_BANNER_8	"              YYYY      AA       AA   SS SSS      !!!!!\n"
-	#define YAS_BANNER_9	"               YYYY     AA        AA   SSSS        !!!!!\n" ANSI_COLOR_RESET
+	#define YAS_BANNER_1	ANSI_COLOR_CYAN "YYYY     YYYY AAAA      SSSS     !!!!!\n"
+	#define YAS_BANNER_2	"  YYY     YYY  AA AA    SS  SSS    !!!!!\n"
+	#define YAS_BANNER_3	"    YYY   YYY   AA  AA   SSS         !!!!!\n"
+	#define YAS_BANNER_4	"      YYY YYY    AA   AA   SSSS        !!!!!\n"
+	#define YAS_BANNER_5	"        YYYYY     AA    AA     SSSS      !!!!!\n"
+	#define YAS_BANNER_6	"          YYYY     AAAAAAAAA      SSSS     !!!!!\n"
+	#define YAS_BANNER_7	"            YYYY    AAAAAAAAAA  SSS  SSSS\n"
+	#define YAS_BANNER_8	"             YYYY    AA       AA   SS  SSS     !!!!!\n"
+	#define YAS_BANNER_9	"              YYYY    AA        AA   SSSS        !!!!!\n" ANSI_COLOR_RESET
 	#define YAS_BANNER_0	ANSI_COLOR_YELLOW "Welcome to\n" ANSI_COLOR_RESET
 	#define YAS_BANNER 		YAS_BANNER_0 YAS_BANNER_1 YAS_BANNER_2 YAS_BANNER_3 YAS_BANNER_4 YAS_BANNER_5 YAS_BANNER_6 YAS_BANNER_7 YAS_BANNER_8 YAS_BANNER_9
 #endif
