@@ -59,7 +59,7 @@
 																		return BUILTIN;
 																	}
 
-<PS>bye|BYE|exit|EXIT|close|CLOSE									{
+<PS,AM>bye|BYE|exit|EXIT|close|CLOSE									{
 																		if(errsExist) {
 																			return ERROR;
 																		}
@@ -79,7 +79,7 @@
 																		return BUILTIN;
 																	}
 
-<PS>cd|CD 															{
+<PS,AM>cd|CD 															{
 																		if(errsExist) {
 																			return ERROR;
 																		}
@@ -99,7 +99,7 @@
 																		return BUILTIN;
 																	}
 
-<PS>debug|DEBUG														{
+<PS,AM>debug|DEBUG														{
 																		if(errsExist) {
 																			return ERROR;
 																		}
@@ -119,7 +119,7 @@
 																		return BUILTIN;
 																	}
 
-<PS>printenv|PRINTENV												{
+<PS,AM>printenv|PRINTENV												{
 																		if(errsExist) {
 																			return ERROR;
 																		}
@@ -139,7 +139,7 @@
 																		return BUILTIN;
 																	}
 
-<PS>setenv|SETENV													{
+<PS,AM>setenv|SETENV													{
 																		if(errsExist) {
 																			return ERROR;
 																		}
@@ -159,7 +159,7 @@
 																		return BUILTIN;
 																	}
 
-<PS>unalias|UNALIAS													{
+<PS,AM>unalias|UNALIAS													{
 																		if(errsExist) {
 																			return ERROR;
 																		}
@@ -179,7 +179,7 @@
 																		return BUILTIN;
 																	}
 
-<PS>unsetenv|UNSETENV												{
+<PS,AM>unsetenv|UNSETENV												{
 																		if(errsExist) {
 																			return ERROR;
 																		}
@@ -199,7 +199,7 @@
 																		return BUILTIN;
 																	}
 
-<PS>help															{
+<PS,AM>help															{
 																		if(errsExist) {
 																			return ERROR;
 																		}
