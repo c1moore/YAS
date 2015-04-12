@@ -31,7 +31,7 @@ When placed between `${` and `}`, an environmental variable will be expanded.  E
 #####Wildcard Matching
 The typical wildcard matching supported by most shells is supported here.  An asterisk (`*`) after a partial file name will return any file that contains 0, 1, or more characters where the asterisk occurs.  A question mark (`?`) only matches a single character.
 #####Tilde Expansion
-**Wildcard matching is not supported with tilde expansion**.  There are two basic constructs that are allowed with tilde expansion.  They are as follows:
+There are two basic constructs that are allowed with tilde expansion.  They are as follows:
 - <b>~name[/dir]</b> - `~name` will be replaced by the user's home directory whose username is `name`.  The optional `/dir` will be appended to the end of this directory.  For example, given c1moore's home directory is `/home/c1moore`, `~c1moore/yas` will be expaned to `/home/c1moore/yas`
 - <b>~[/dir]</b> - `~` will be replaced by the current user's home directory.  The optional `/dir` will be appended to the end of this directory.
 
