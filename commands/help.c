@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <yas.h>
 
+/* This command currently presents the users with a lists of builtin commands, 
+and the user can select one to see the command usage.*/
 int help(int argc, char *argv[]) {
 	int cd;
 	char * cmds[] = {"1. alias", "2. bye", " 3. cd", "4. printenv", "5. setenv", "6. unalias", "7. unsetenv"};
