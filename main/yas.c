@@ -407,7 +407,7 @@ int main() {
 						int status[1];
 						waitpid((pid_t) child_pids[j], status, WUNTRACED);
 
-						if(WIFSIGNALED(status)) {
+						if(WIFSIGNALED(*status)) {
 							int sig_num = WTERMSIG(*status);
 							switch(sig_num) {
 								case SIGSEGV:
@@ -434,7 +434,7 @@ int main() {
 							#endif
 						}
 
-						if(WIFSTOPPED(status)) {
+						if(WIFSTOPPED(*status)) {
 							int sig_num = WSTOPSIG(*status);
 							switch(sig_num) {
 								case SIGSEGV:
@@ -535,9 +535,10 @@ void init_yas(void) {
 	sigaction(SIGPIPE, &errCatcher, NULL);
 	sigaction(SIGFPE, &errCatcher, NULL);
 
-	//Clear the console and display welcome messages.
-	system("echo \033c; echo \x1Bc; tput clear;");
+	//Clear the console.
+	system("echo \033c; echo \x1Bc; tput clear;");		//Not supposed to use system, but this is solely for aesthetic reasons.  Has no functionality, just clears the terminal's output.
 
+	//Display welcome message.
 	fprintf(stdout, "%s\n\n", YAS_BANNER);
 
 	//Initialize counts and yerrno.

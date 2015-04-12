@@ -6,5 +6,6 @@
 	int printenv(int argc, char *argv[]);
 	int env(int argc, char *argv[]);
 	int unenv(int argc, char *argv[]);
+	int help(int argc, char *argv[]);
 
 #endif
