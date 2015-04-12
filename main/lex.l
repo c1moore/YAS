@@ -31,7 +31,7 @@
 
 <INITIAL>^[ \t]*alias|^[ \t]*ALIAS 									{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN BI;
 																		yylval.str = strdup("alias");
@@ -41,7 +41,7 @@
 
 <PS>alias|ALIAS 													{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN BI;
 																		yylval.str = strdup("alias");
@@ -51,7 +51,7 @@
 
 <INITIAL>^[ \t]*bye|^[ \t]*BYE|^[ \t]*exit|^[ \t]*EXIT|^[ \t]*close|^[ \t]*CLOSE	{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN BI;
 																		yylval.str = strdup("bye");
@@ -61,7 +61,7 @@
 
 <PS>bye|BYE|exit|EXIT|close|CLOSE									{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN BI;
 																		yylval.str = strdup("bye");
@@ -71,7 +71,7 @@
 
 <INITIAL>^[ \t]*cd|^[ \t]*CD 										{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN BI;
 																		yylval.str = strdup("cd");
@@ -81,7 +81,7 @@
 
 <PS>cd|CD 															{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN BI;
 																		yylval.str = strdup("cd");
@@ -91,7 +91,7 @@
 
 <INITIAL>^[ \t]*debug|^[ \t]*DEBUG									{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN BI;
 																		yylval.str = strdup("debug");
@@ -101,7 +101,7 @@
 
 <PS>debug|DEBUG														{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN BI;
 																		yylval.str = strdup("debug");
@@ -111,7 +111,7 @@
 
 <INITIAL>^[ \t]*printenv|^[ \t]*PRINTENV							{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN BI;
 																		yylval.str = strdup("printenv");
@@ -121,7 +121,7 @@
 
 <PS>printenv|PRINTENV												{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN BI;
 																		yylval.str = strdup("printenv");
@@ -131,7 +131,7 @@
 
 <INITIAL>^[ \t]*setenv|^[ \t]*SETENV								{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN BI;
 																		yylval.str = strdup("setenv");
@@ -141,7 +141,7 @@
 
 <PS>setenv|SETENV													{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN BI;
 																		yylval.str = strdup("setenv");
@@ -151,7 +151,7 @@
 
 <INITIAL>^[ \t]*unalias|^[ \t]*UNALIAS								{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN BI;
 																		yylval.str = strdup("unalias");
@@ -161,7 +161,7 @@
 
 <PS>unalias|UNALIAS													{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN BI;
 																		yylval.str = strdup("unalias");
@@ -171,7 +171,7 @@
 
 <INITIAL>^[ \t]*unsetenv|^[ \t]*UNSETENV							{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN BI;
 																		yylval.str = strdup("unsetenv");
@@ -181,7 +181,7 @@
 
 <PS>unsetenv|UNSETENV												{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN BI;
 																		yylval.str = strdup("unsetenv");
@@ -191,7 +191,7 @@
 
 <INITIAL>^[ \t]*help												{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN BI;
 																		yylval.str = strdup("help");
@@ -201,7 +201,7 @@
 
 <PS>help															{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN BI;
 																		yylval.str = strdup("help");
@@ -211,7 +211,7 @@
 
 ^[ \t]*("./")?[-a-zA-Z0-9./_]+										{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		trim(yytext);
 																		int result = expandAliases(yytext);
@@ -220,7 +220,7 @@
 																			return CMD;
 																		} else if(result == -1) {
 																			errsExist = 1;
-																			return ERROR1;
+																			return ERROR;
 																		} else {
 																			BEGIN AM;
 																		}
@@ -228,7 +228,7 @@
 
 ^[ \t]*\"([-a-zA-Z0-9.:/_\\?*`~!@#$%^&*()+={}[\]|:;',.<> \t]*(\\\")*)*\"	{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		yytext[yyleng - 1] = 0;		//Remove trailing quote.
 																		trim(yytext);				//Remove whitespace before first quote
@@ -238,7 +238,7 @@
 																			return CMD;
 																		} else if(result == -1) {
 																			errsExist = 1;
-																			return ERROR1;
+																			return ERROR;
 																		} else {
 																			BEGIN AM;
 																		}
@@ -246,7 +246,7 @@
 
 ^[ \t]*-*([-a-zA-Z0-9.:/_]+(\\[ a-zA-Z0-9<>|"\\&*?]?)*)*			{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		trim(yytext);
 																		removeEscapes(yytext, yyleng);
@@ -256,7 +256,7 @@
 																			return CMD;
 																		} else if(result == -1) {
 																			errsExist = 1;
-																			return ERROR1;
+																			return ERROR;
 																		} else {
 																			BEGIN AM;
 																		}
@@ -264,7 +264,7 @@
 
 <PS>("./")?[-a-zA-Z0-9./_]+											{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		int result = expandAliases(yytext);
 																		if(!result) {
@@ -274,7 +274,7 @@
 																			return CMD;
 																		} else if(result == -1) {
 																			errsExist = 1;
-																			return ERROR1;
+																			return ERROR;
 																		} else {
 																			BEGIN AM;
 																		}
@@ -282,7 +282,7 @@
 
 <PS>\"([-a-zA-Z0-9.:/_\\?*`~!@#$%^&*()+={}[\]|:;',.<> \t]*(\\\")*)*\"	{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		yytext[yyleng - 1] = 0;		//Remove trailing quote.
 																		trim(yytext);				//Remove whitespace before first quote
@@ -292,7 +292,7 @@
 																			return CMD;
 																		} else if(result == -1) {
 																			errsExist = 1;
-																			return ERROR1;
+																			return ERROR;
 																		} else {
 																			BEGIN AM;
 																		}
@@ -300,7 +300,7 @@
 
 <PS>-*([-a-zA-Z0-9.:/_]+(\\[ a-zA-Z0-9<>|"\\&*?]?)*)*				{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		trim(yytext);
 																		removeEscapes(yytext, yyleng);
@@ -310,7 +310,7 @@
 																			return CMD;
 																		} else if(result == -1) {
 																			errsExist = 1;
-																			return ERROR1;
+																			return ERROR;
 																		} else {
 																			BEGIN AM;
 																		}
@@ -318,7 +318,7 @@
 
 <AM>[ \t]*("./")?[-a-zA-Z0-9./_]+									{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		if(!aliased) {
 																			BEGIN 0;
@@ -340,14 +340,14 @@
 																			} else if(result == -1) {
 																				BEGIN 0;
 																				errsExist = 1;
-																				return ERROR1;
+																				return ERROR;
 																			}
 																		}
 																	}
 
 <AM>\"([-a-zA-Z0-9.:/_\\?*`~!@#$%^&*()+={}[\]|:;',.<> \t]*(\\\")*)*\"	{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		if(!aliased) {
 																			BEGIN 0;
@@ -370,14 +370,14 @@
 																			} else if(result == -1) {
 																				BEGIN 0;
 																				errsExist = 1;
-																				return ERROR1;
+																				return ERROR;
 																			}
 																		}
 																	}
 
 <AM>-*([-a-zA-Z0-9.:/_]+(\\[ a-zA-Z0-9<>|"\\&*?]?)*)*				{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		if(!aliased) {
 																			BEGIN 0;
@@ -400,14 +400,14 @@
 																			} else if(result == -1) {
 																				BEGIN 0;
 																				errsExist = 1;
-																				return ERROR1;
+																				return ERROR;
 																			}
 																		}
 																	}
 
 <INITIAL,PS,BI>"|"													{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		if(YY_START == BI) {
 																			fprintf(stderr, ANSI_COLOR_RED "Error: I/O redirection is not supported with builtin commands.\n" ANSI_COLOR_RESET);
@@ -419,7 +419,7 @@
 																			aliased = 0;
 																			errsExist = 1;
 
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN PS;
 																		return *yytext;
@@ -427,7 +427,7 @@
 
 <INITIAL,BI>\"([-a-zA-Z0-9.:/_\\?*`~!@#$%^&*()+={}[\]|:;',.<> \t]*(\\\")*)*\"	{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		char temp = yytext[yyleng - 1];
 
@@ -443,7 +443,7 @@
 																	}
 <INITIAL,BI>-*([-a-zA-Z0-9.:/_+=()^%$#@!`,]+(\\[ a-zA-Z0-9<>|"\\&*?]?)*)*		{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		yylval.str = strdup(yytext);
 
@@ -453,7 +453,7 @@
 																	}
 <INITIAL,BI>~?(([-a-zA-Z0-9.:/_+=()^%$#@!`,]*(\\[ a-zA-Z0-9<>|"\\&*?])*)*[*?]+([-a-zA-Z0-9.:/_+=()^%$#@!`,]*(\\[ a-zA-Z0-9<>|"\\&*?])*)*)+		{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		removeEscapes(yytext, yyleng);
 																		int matches = expandWildcards(yytext);
@@ -466,7 +466,7 @@
 																			aliased = 0;
 																			errsExist = 1;
 
-																			return ERROR1;
+																			return ERROR;
 																		} else if(matches == 1) {
 																			fprintf(stderr, ANSI_COLOR_RED "Error: No files found that match %s\n" ANSI_COLOR_RESET, yytext);
 
@@ -478,20 +478,20 @@
 																			aliased = 0;
 																			errsExist = 1;
 
-																			return ERROR1;
+																			return ERROR;
 																		}
 																	}
 
 <INITIAL,BI>"${"(\"([-a-zA-Z0-9.:/_\\?*`~!@#$%^&*()+={}[\]|;',<> \t]*(\\\")*)*\")"}"	{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		yytext[yyleng - 2] = 0;						/* Remove the trailing '"}' */
 																		int argLength = yyleng - 5;					/* New length of yylval.str */
 
 																		removeEscapedQuotes(&yytext[3], argLength);	/* Remove escaped quotes. */
 
-																		/* Replace/expand the environmental variable.  If there was an error, return ERROR1. */
+																		/* Replace/expand the environmental variable.  If there was an error, return ERROR. */
 																		if(replaceEnvVar(&yytext[3]) == -1) {
 																			if(parentAlias != NULL) {
 																				free(parentAlias);
@@ -500,19 +500,19 @@
 																			aliased = 0;
 																			errsExist = 1;
 
-																			return ERROR1;
+																			return ERROR;
 																		}
 																	}
 <INITIAL,BI>"${"([-a-zA-Z0-9.:/_()?*`~!@#$%^&=+\]|;',<> \t]+)"}"	{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		yytext[yyleng - 1] = 0;					/* Remove the trailing '}' */
 																		int argLength = yyleng - 3;				/* Length of arg as seen by replaceEnvVar */
 
 																		removeEscapes(yylval.str, yyleng);		/* Remove escaped characters. */
 
-																		/* Replace/expand the environmental variable.  If there wa an error, return ERROR1. */
+																		/* Replace/expand the environmental variable.  If there wa an error, return ERROR. */
 																		if(replaceEnvVar(&yytext[2]) == -1) {
 																			if(parentAlias != NULL) {
 																				free(parentAlias);
@@ -521,55 +521,55 @@
 																			aliased = 0;
 																			errsExist = 1;
 
-																			return ERROR1;
+																			return ERROR;
 																		}
 																	}
 
 "2>"																{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		return ERR_2_FILE;
 																	}
 
 "2>&1"																{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		return ERR_2_OUT;
 																	}
 
 [<>&]																{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		return *yytext;
 																	}
 
 ">>"																{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		return OUT_RA;
 																	}
 
 ">&"																{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		return OUT_ERR_R;
 																	}
 
 ">>&"																{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		return OUT_ERR_RA;
 																	}
 
 <INITIAL,BI>~"/"(("/"?[-a-zA-Z0-9._+=()^%$#@!`,]*(\\[ <>|"\\&]+)*)?)*			{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		yylval.str = strdup(yytext);
 																		removeEscapes(yylval.str, yyleng);
@@ -578,7 +578,7 @@
 
 <INITIAL,BI>~														{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		yylval.str = strdup(yytext);
 																		return EXPANDED_FILE;
@@ -586,7 +586,7 @@
 
 <INITIAL,BI>~[-a-zA-Z0-9_+=()^%$#@!`,]+("/"?[-a-zA-Z0-9._+=()^%$#@!`,]*(\\[ <>|"\\&]+)?)*	{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		yylval.str = strdup(yytext);
 																		removeEscapes(yylval.str, yyleng);
@@ -595,7 +595,7 @@
 
 <*>([-a-zA-Z0-9./_%$#@!^=+,]*(\\[ &]+)?)+\x1B						{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		yylval.str = strdup(yytext);
 																		removeEscapes(yylval.str, yyleng);
@@ -603,13 +603,13 @@
 																			return ARG;
 																		else {
 																			errsExist = 1;
-																			return ERROR1;
+																			return ERROR;
 																		}
 																	}
 
 <*>~[-a-zA-Z0-9_]+([-a-zA-Z0-9./_%$#@!^=+,]*(\\[ &]+)?)*\x1B		{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		yylval.str = strdup(yytext);
 																		removeEscapes(yylval.str, yyleng);
@@ -618,15 +618,15 @@
 																		}
 																		else {
 																			errsExist = 1;
-																			return ERROR1;
+																			return ERROR;
 																		}
 																	}
 
 <*>[ \t]+															/* ignore white space */;
 
-<*>.																{
+<INITIAL,BI,PS,AM>.													{
 																		if(errsExist) {
-																			return ERROR1;
+																			return ERROR;
 																		}
 																		BEGIN ERR;
 
@@ -634,7 +634,7 @@
 																	}
 <ERR>.*																{
 																		BEGIN 0;
-																		
+
 																		fprintf(stderr, ANSI_COLOR_RED "Error: %s not recognized.\n" ANSI_COLOR_RESET, yytext);
 
 																		if(parentAlias != NULL) {
@@ -644,7 +644,7 @@
 																		aliased = 0;
 																		errsExist = 1;
 
-																		return ERROR1;
+																		return ERROR;
 
 																	}
 
