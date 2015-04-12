@@ -411,9 +411,9 @@
 																		}
 																	}
 
-2>																	return ERR_2_FILE;
+"2>"																	return ERR_2_FILE;
 
-2>&1																return ERR_2_OUT;
+"2>&1"																return ERR_2_OUT;
 
 [<>&]																return *yytext;
 
