@@ -20,6 +20,8 @@ char builtin = BUILTIN_FALSE;
 char garbage_collected = GC_FALSE;	//Initialize to false.  It is the duty of YACC to set it to GC_TRUE if EOC is reached.
 int yerrno = 0;
 
+extern char errsExist;
+
 char *usrnm;							//Username
 char *homeDir;							//HOME environmental variable
 char *path;								//PATH environmental variable
@@ -604,6 +606,8 @@ void reinit(void) {
 	bg_mode = BG_MODE_FALSE;
 	builtin = BUILTIN_FALSE;
 	garbage_collected = GC_FALSE;
+
+	errsExist = 0;
 
 	//Check to see if the HOME and PATH environmental variables changed (user switched to super user).  If so update them and set newPath to 1.
 	char *newHomeEnv = getenv("HOME");
