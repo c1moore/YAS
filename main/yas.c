@@ -160,13 +160,13 @@ int main() {
 					if(cmdtab[i].C_ERR.field == C_IO_FILE) {
 						//If the file doesn't exist use creat.
 						if(access(cmdtab[i].C_ERR.io.file, F_OK)) {
-							iofiles[1] = creat(cmdtab[i].C_ERR.io.file, 0000666);
+							iofiles[2] = creat(cmdtab[i].C_ERR.io.file, 0000666);
 						}else if(access(cmdtab[i].C_ERR.io.file, W_OK)) {
 							fprintf(stderr, "I/O Error: Cannot write to error file: %s.\n", cmdtab[i].C_ERR.io.file);
 							break;
 						} else {
 							//The file exists and should be appended to.
-							iofiles[1] = open(cmdtab[i].C_ERR.io.file, O_WRONLY | O_APPEND);
+							iofiles[2] = open(cmdtab[i].C_ERR.io.file, O_WRONLY | O_APPEND);
 						}
 					}
 
@@ -198,7 +198,7 @@ int main() {
 								}
 								if(cmdtab[i].C_ERR.field == C_IO_FILE) {
 									close(2);					//Close standard error
-									dup(iofiles[2]);			//Set stderr
+									dup2(iofiles[2], 2);		//Set stderr
 									close(iofiles[2]);			//Close unneed I/O
 								}
 
