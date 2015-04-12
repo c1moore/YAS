@@ -7,7 +7,7 @@
 #include <yas.h>
 
 int alias(int argc, char *argv[]) {
-	struct yas_alias *next, *curr;		//gathers linked list structure
+	struct yas_alias *next, *curr, *prev;		//gathers linked list structure
 
 	/*if only the alias command is typed iterate through
 	the linked list of aliases and print all the aliases 
@@ -42,21 +42,25 @@ int alias(int argc, char *argv[]) {
 			return(ARG_ERR);
 		}
 
-		curr = alias_head;	//gets alias tab head
+		prev = alias_head;
+		curr = alias_head->next;	//gets alias tab head
 
 		/*goes theough aliastab until it reaches the end of the list.*/
-		while (curr->next != NULL) {
-			/*if(strcmp(argv[2],curr->cmd) == 0) {
-				fprintf(stderr,"Command %s is already set with alias %s",argv[2],curr->alias);
+		while (curr != NULL) {
+			if(strcmp(argv[1],curr->alias) == 0) {
+				fprintf(stderr,"Alias %s is already set with command %s",argv[1],curr->cmd);
 				return(BUILTIN_ERR);
 			}
 			//alerts use that the alias is already a system command or that the cmd is already
-			else if(strcmp(argv[1],curr->alias) == 0 || strcmp(argv[1],curr->cmd) == 0) {
+			/*else if(strcmp(argv[1],curr->alias) == 0 || strcmp(argv[1],curr->cmd) == 0) {
 				fprintf(stderr,"Alias %s is already set with command %s",argv[1],curr->cmd);
 				return(BUILTIN_ERR);
 			}*/	
+			prev = curr;
 			curr = curr->next;
 		}
+
+		curr = prev;
 
 		struct yas_alias *new_alias;
 		new_alias = (struct yas_alias*)malloc(sizeof(struct yas_alias));		//creates new ending node
