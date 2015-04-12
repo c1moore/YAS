@@ -1049,5 +1049,5 @@ int replaceEnvVar(char *envVar) {
 }
 
 int yywrap() {
-	return 1;
+	return 0;
 }
