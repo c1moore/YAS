@@ -20,6 +20,8 @@
 	char *parentAlias = NULL;	//While expanding aliases, if a nested alias is equal to the original alias (parentAlias), throw an error.
 
 	void yyerror(char *);
+	char *replaceTilde(char *, char *);
+	char *replaceUserTilde(char *, char *);
 %}
 
 %x PS BI AM
@@ -334,7 +336,7 @@
 
 																		return ARG;
 																	}
-<INITIAL,BI>([-a-zA-Z0-9.:/_+=()^%$#@!`,]*[*?]+(\\[ a-zA-Z0-9<>|"\\&*?])*)+		{
+<INITIAL,BI>~?(([-a-zA-Z0-9.:/_+=()^%$#@!`,]*(\\[ a-zA-Z0-9<>|"\\&*?])*)*[*?]+([-a-zA-Z0-9.:/_+=()^%$#@!`,]*(\\[ a-zA-Z0-9<>|"\\&*?])*)*)+		{
 																		removeEscapes(yytext, yyleng);
 																		int matches = expandWildcards(yytext);
 																		if(matches == -1) {
@@ -557,19 +559,22 @@ int expandFileName(char *filename, int fileLength) {
 		i++;
 	}
 
-	char *directory = (char *) malloc(1 * sizeof(char));
-	*directory = '.';
+	char *directory;
+	char *pattern;
 
-	char *pattern = (char *) malloc((strlen(filename + 1) + 1) * sizeof(char));
-	strcpy(pattern, filename);
-	strcat(pattern, "*");		//Add wildcard to the end of the file path.
-	if(j >= 0) {
-		free(directory);
+	if(j == -1) {
+		directory = (char *) malloc(1 * sizeof(char));
+		directory[0] = '.';
+		directory[1] = 0;
+
+		pattern = (char *) malloc((strlen(filename) + 2) * sizeof(char));
+		strcpy(pattern, filename);
+		strcat(pattern, "*");		//Add wildcard to the end of the file path.
+	} else {
 		directory = (char *) malloc((j + 2) * sizeof(char));
 		strncpy(directory, filename, j + 1);
-		directory[j+2] = 0;
+		directory[j+1] = 0;
 
-		free(pattern);
 		pattern = (char *) malloc(strlen((&filename[j]) + 1) * sizeof(char));
 		strcpy(pattern, &filename[j + 1]);
 		strcat(pattern, "*");
@@ -611,16 +616,18 @@ int expandFileName(char *filename, int fileLength) {
 		}
 	}
 
-	closedir(dir);
-
 	if(i > 1 && i % 3) {
 		fprintf(stderr, ANSI_COLOR_RED "\n\nMultiple files match your query.  Please use one of the files above.\n");
 	} else if(i > 1) {
 		fprintf(stderr, ANSI_COLOR_RED "\nMultiple files match your query.  Please use one of the files above.\n");
 	} else if(i == 0) {
 		pattern[strlen(pattern) - 1] = 0;
-		fprintf(stderr, ANSI_COLOR_RED "\nError: File %s in directory %s not found.\n", pattern, directory);
+		fprintf(stderr, ANSI_COLOR_RED "\nError: File matching pattern %s* in directory %s not found.\n", pattern, directory);
 	}
+
+	free(directory);
+	free(pattern);
+	closedir(dir);
 
 	return return_value;
 }
@@ -742,8 +749,26 @@ void removeEscapedQuotes(char *arg, int len) {
 * Expand wildcards '*' and '?'.  Return -1 if an error occurred, return 0 if matches found,
 * return 1 if no matches found.
 */
-int expandWildcards(char *argument) {
+int expandWildcards(char *arg) {
 	char return_value = 1;
+
+	char *argument = strdup(arg);
+
+	if(argument[0] == '~') {
+		//Needs tilde expansion, determine what kind.  Argument has to contain a '/' since there is a wildcard present
+		char *temp = (char *) malloc((strlen(argument) + 1) * sizeof(char));
+		strcpy(temp, argument);
+		free(argument);
+		argument = NULL;
+
+		if(temp[1] == '/') {
+			argument = (char *) replaceTilde(argument, temp);
+		} else {
+			argument = (char *) replaceUserTilde(argument, temp);
+		}
+
+		free(temp);
+	}
 
 	//If the argument contains a path, find the last '/'
 	int i = 0, j = -1;

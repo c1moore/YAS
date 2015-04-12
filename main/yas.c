@@ -530,9 +530,10 @@ void init_yas(void) {
 	sigaction(SIGPIPE, &errCatcher, NULL);
 	sigaction(SIGFPE, &errCatcher, NULL);
 
-	//Clear the console and display welcome messages.
-	system("echo \033c; echo \x1Bc; tput clear;");
+	//Clear the console.
+	system("echo \033c; echo \x1Bc; tput clear;");		//Not supposed to use system, but this is solely for aesthetic reasons.  Has no functionality, just clears the terminal's output.
 
+	//Display welcome message.
 	fprintf(stdout, "%s\n\n", YAS_BANNER);
 
 	//Initialize counts and yerrno.

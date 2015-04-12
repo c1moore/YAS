@@ -18,8 +18,8 @@
 
 	void checkAndAlloc();
 	void reallocArgs();
-	void replaceTilde(char *);
-	char replaceUserTilde(char *);
+	char *replaceTilde(char *, char *);
+	char *replaceUserTilde(char *, char *);
 	int replaceEnvVar(char *);
 	void addArg(char *, char *);
 	void reinitializeGlobals();
@@ -167,7 +167,7 @@ command :
 
 															YYABORT;
 														}
-			| BUILTIN arguments ERROR end_of_command_null		{
+			| BUILTIN arguments ERROR end_of_command	{
 															reinitializeGlobals();
 															yerrno = YAS_ERR;
 
@@ -179,21 +179,12 @@ command :
 
 															YYABORT;
 														}
-			| arguments_no_null io_redirects end_of_command		{
-															fprintf(stderr, ANSI_COLOR_RED "Error: No command found.  Commands cannot contain metacharacters.\n" ANSI_COLOR_RESET);
+			| io_redirects_no_null arguments ERROR end_of_command		{
 															reinitializeGlobals();
 															yerrno = YAS_ERR;
 
 															YYABORT;
 														}
-			| io_redirects_no_null arguments end_of_command		{
-															fprintf(stderr, ANSI_COLOR_RED "Error: No command found.  Commands cannot contain metacharacters.\n" ANSI_COLOR_RESET);
-															reinitializeGlobals();
-															yerrno = YAS_ERR;
-
-															YYABORT;
-														}
-			;
 
 end_of_command :
 			  EOC 										{
@@ -216,16 +207,6 @@ end_of_command :
 			| '&'										{
 															bg_mode = BG_MODE_TRUE;
 														}
-			;
-
-end_of_command_null :
-			  EOC 										{
-			  												reached_eoc = 1;
-			  												garbage_collected = GC_TRUE;
-														}
-			| '|'
-			| '&'
-			| /* NULL */
 			;
 
 io_redirects :
@@ -253,6 +234,11 @@ io_redirect :
 															new_cmd.C_INPUT.concat = C_IO_OW;
 
 															io_in_set = 1;
+
+															if(argument != NULL) {
+																free(argument);
+																argument = NULL;
+															}
 														}
 			| '>' io_argument							{
 			  												if(io_out_set == 1) {
@@ -269,6 +255,11 @@ io_redirect :
 															new_cmd.C_INPUT.concat = C_IO_OW;
 
 															io_out_set = 1;
+
+															if(argument != NULL) {
+																free(argument);
+																argument = NULL;
+															}
 														}
 			| OUT_RA io_argument						{
 			  												if(io_out_set == 1) {
@@ -285,6 +276,11 @@ io_redirect :
 															new_cmd.C_INPUT.concat = C_IO_CONCAT;
 
 															io_out_set = 1;
+
+															if(argument != NULL) {
+																free(argument);
+																argument = NULL;
+															}
 														}
 			| ERR_2_FILE io_argument					{
 			  												if(io_err_set == 1) {
@@ -301,6 +297,11 @@ io_redirect :
 															new_cmd.C_INPUT.concat = C_IO_OW;
 
 															io_err_set = 1;
+
+															if(argument != NULL) {
+																free(argument);
+																argument = NULL;
+															}
 														}
 			| ERR_2_OUT									{
 			  												if(io_err_set == 1) {
@@ -314,6 +315,11 @@ io_redirect :
 															new_cmd.C_ERR.field = C_IO_POINTER;
 
 															io_err_set = 1;
+
+															if(argument != NULL) {
+																free(argument);
+																argument = NULL;
+															}
 														}
 			;
 
@@ -322,10 +328,6 @@ arguments :
 			| /* NULL */								{
 															checkAndAlloc();
 														}
-			;
-
-arguments_no_null :
-			  arguments_no_null argument
 			;
 
 argument :
@@ -367,9 +369,14 @@ argument :
 							  									new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS] = &last_arg[++i];
 						  									}
 
-						  									replaceTilde($1);
+						  									argument = replaceTilde(argument, $1);
 
 						  									addArg(new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS], argument);
+
+															if(argument != NULL) {
+																free(argument);
+																argument = NULL;
+															}
 														}
 			| EXPANDED_USER								{
 															checkAndAlloc();
@@ -389,13 +396,19 @@ argument :
 							  									new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS] = &last_arg[++i];
 						  									}
 
-						  									if(replaceUserTilde($1) == 2) {
+						  									argument = replaceUserTilde(argument, $1);
+						  									if(argument == NULL) {
 						  										yerrno = USER_ERR;
 
 						  										YYABORT;
 						  									}
 
 						  									addArg(new_cmd.C_ARGS_PNTR[new_cmd.C_NARGS], argument);
+
+															if(argument != NULL) {
+																free(argument);
+																argument = NULL;
+															}
 														}
 			;
 
@@ -411,7 +424,7 @@ io_argument :											/* IO arguments are handled slightly differently than re
 						  									$$ = $1;
 						  								}
 			| EXPANDED_FILE								{
-						  									replaceTilde($1);
+						  									argument = replaceTilde(argument, $1);
 
 						  									if(strlen(argument) > PATH_MAX) {
 						  										fprintf(stderr, ANSI_COLOR_RED "Error: Specified path (%s) too long.\nPaths must be shorter than %d (including tilde expansion).\n" ANSI_COLOR_RESET, $1, PATH_MAX);
@@ -423,7 +436,8 @@ io_argument :											/* IO arguments are handled slightly differently than re
 							  								$$ = argument;
 														}
 			| EXPANDED_USER								{
-						  									if(replaceUserTilde($1) == 2) {
+															argument = replaceUserTilde(argument, $1);
+						  									if(argument == NULL) {
 						  										yerrno = USER_ERR;
 
 						  										YYABORT;
@@ -500,7 +514,7 @@ void reallocArgsPntr() {
 	memset(&new_cmd.C_ARGS_PNTR[new_loc] - 1, 0, INIT_ARGS * (int) pow(RESIZE_RATIO, pntr_resizes) - new_loc);
 }
 
-void replaceTilde(char *filePath) {
+char *replaceTilde(char *dest, char *filePath) {
 	char *home = getenv("HOME");
 
 	int homeLength = 0;
@@ -516,13 +530,15 @@ void replaceTilde(char *filePath) {
 	}
 
 	totalLength = homeLength + filePathLength + 1;
-	
-	argument = (char *) malloc(totalLength);
-	strcpy(argument, home);
-	strcpy(&argument[homeLength-1], &filePath[1]);		//Overwrite the NULL and possible '/' char at the end of home.  Also skip the '~' in filePath.
+
+	dest = (char *) malloc(totalLength);
+	strcpy(dest, home);
+	strcpy(&dest[homeLength-1], &filePath[1]);		//Overwrite the NULL and possible '/' char at the end of home.  Also skip the '~' in filePath.
+
+	return dest;
 }
 
-char replaceUserTilde(char *word) {
+char *replaceUserTilde(char *dest, char *word) {
 	int unameLength = 0;
 	while(word[unameLength] != '/' && word[unameLength] != 0) {
 		unameLength++;
@@ -537,7 +553,7 @@ char replaceUserTilde(char *word) {
 	struct passwd *user = getpwnam(uname);
 	if(user == NULL) {
 		fprintf(stderr, ANSI_COLOR_RED "Error: User %s not found.\n" ANSI_COLOR_RESET, uname);
-		return 2;
+		return (char *) NULL;
 	}
 
 	char *home = user->pw_dir;
@@ -556,9 +572,11 @@ char replaceUserTilde(char *word) {
 
 	totalLength = homeLength + filePathLength + 1;
 	
-	argument = (char *) malloc(totalLength);
-	strcpy(argument, home);
-	strcpy(&argument[homeLength-1], filePath);		//Overwrite the NULL and possible '/' char at the end of home.
+	dest = (char *) malloc(totalLength);
+	strcpy(dest, home);
+	strcpy(&dest[homeLength-1], filePath);		//Overwrite the NULL and possible '/' char at the end of home.
+
+	return dest;
 }
 
 void addArg(char *dest, char *src) {
