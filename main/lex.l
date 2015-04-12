@@ -335,6 +335,7 @@
 																		return ARG;
 																	}
 <INITIAL,BI>([-a-zA-Z0-9.:/_+=()^%$#@!`,]*[*?]+(\\[ a-zA-Z0-9<>|"\\&*?])*)+		{
+																		removeEscapes(yytext, yyleng);
 																		int matches = expandWildcards(yytext);
 																		if(matches == -1) {
 																			BEGIN 0;
