@@ -18,6 +18,7 @@
 
 	void checkAndAlloc();
 	void reallocArgs();
+	void reallocArgsPntr();
 	char *replaceTilde(char *, char *);
 	char *replaceUserTilde(char *, char *);
 	int replaceEnvVar(char *);
