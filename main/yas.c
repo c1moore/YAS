@@ -193,15 +193,22 @@ int main() {
 									dup(iofiles[0]);			//Set stdin
 									close(iofiles[0]);			//Close unneed I/O
 								}
-								if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
-									close(1);					//Close standard output
-									dup(iofiles[1]);			//Set stdout
-									close(iofiles[1]);			//Close unneed I/O
-								}
 								if(cmdtab[i].C_ERR.field == C_IO_FILE) {
 									close(2);					//Close standard error
 									dup2(iofiles[2], 2);		//Set stderr
 									close(iofiles[2]);			//Close unneed I/O
+								} else if(cmdtab[i].C_ERR.field == C_IO_POINTER && cmdtab[i].C_ERR.io.pointer != YAS_STDERR) {
+									close(2);
+									if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
+										dup2(iofiles[1], 2);	//Don't close stdout, it will be closed later when redirectirng stdout.
+									} else {
+										dup2(1, 2);
+									}
+								}
+								if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
+									close(1);					//Close standard output
+									dup(iofiles[1]);			//Set stdout
+									close(iofiles[1]);			//Close unneed I/O
 								}
 
 								//Execute the command and exit
@@ -255,8 +262,11 @@ int main() {
 								}
 								if(cmdtab[i].C_ERR.field == C_IO_FILE) {
 									close(2);					//Close standard error
-									dup(iofiles[2]);			//Set stderr
+									dup2(iofiles[2], 2);		//Set stderr
 									close(iofiles[2]);			//Close unneed I/O
+								} else if(cmdtab[i].C_ERR.field == C_IO_POINTER && cmdtab[i].C_ERR.io.pointer != YAS_STDERR && cmdtab[i].C_ERR.io.pointer == cmdtab[i].C_OUTPUT.io.pointer) {
+									close(2);
+									dup2(1, 2);					//Can't redirect output so stderr can only go to stdout.
 								}
 
 								//Close unneeded I/O
@@ -297,15 +307,22 @@ int main() {
 							dup(pfds[i-1].fda[0]);	//Set beginning of pipe as stdin
 								
 							//Check I/O redirection
+							if(cmdtab[i].C_ERR.field == C_IO_FILE) {
+								close(2);					//Close standard error
+								dup2(iofiles[2], 2);		//Set stderr
+								close(iofiles[2]);			//Close unneed I/O
+							} else if(cmdtab[i].C_ERR.field == C_IO_POINTER && cmdtab[i].C_ERR.io.pointer != YAS_STDERR && cmdtab[i].C_ERR.io.pointer == cmdtab[i].C_OUTPUT.io.pointer) {
+								close(2);
+								if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
+									dup2(iofiles[1], 2);	//Don't close stdout, it will be closed later when redirectirng stdout.
+								} else {
+									dup2(1, 2);
+								}
+							}
 							if(cmdtab[i].C_OUTPUT.field == C_IO_FILE) {
 								close(1);					//Close standard output
 								dup(iofiles[1]);			//Set stdout
 								close(iofiles[1]);			//Close unneed I/O
-							}
-							if(cmdtab[i].C_ERR.field == C_IO_FILE) {
-								close(2);					//Close standard error
-								dup(iofiles[2]);			//Set stderr
-								close(iofiles[2]);			//Close unneed I/O
 							}
 
 							//Close unneeded I/O
@@ -370,8 +387,11 @@ int main() {
 							//Check I/O redirection
 							if(cmdtab[i].C_ERR.field == C_IO_FILE) {
 								close(2);					//Close standard error
-								dup(iofiles[2]);			//Set stderr
+								dup2(iofiles[2], 2);		//Set stderr
 								close(iofiles[2]);			//Close unneed I/O
+							} else if(cmdtab[i].C_ERR.field == C_IO_POINTER && cmdtab[i].C_ERR.io.pointer != YAS_STDERR && cmdtab[i].C_ERR.io.pointer == cmdtab[i].C_OUTPUT.io.pointer) {
+								close(2);
+								dup2(1, 2);
 							}
 
 							//Close unneeded I/O
